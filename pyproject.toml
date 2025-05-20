@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "MCS_ERP"
+version = "0.1.0"
+description = ""
+authors = []
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+dateparser = "1.2.1"
+Django = "5.1.5"
+django-cors-headers = "4.7.0"
+django-environ = "0.12.0"
+djangorestframework = "3.15.2"
+google-api-core = "2.24.1"
+google-cloud-documentai = "3.1.0"
+google-cloud-storage = "3.0.0"
+pandas = "2.2.3"
+psycopg2-binary = "2.9.10"
+python-decouple = "3.8"
+requests = "2.32.3"
+openpyxl = "3.1.5"
+python-dotenv = "1.0.1"
+google-cloud-secret-manager = "2.23.1"
+colorlog = "^6.9.0"
+openai = "1.65.2"
+pdf2image = "^1.17.0"
+pillow = "^10.2.0"
+rutificador = "0.2.25"
+slack-sdk = "^3.35.0"
+firebase-admin = "^6.7.0"
+environ = "^1.0"
+django-filter = "^25.1"
+unidecode = "^1.4.0"
+
+
+[tool.poetry.scripts]
+dev = "manage:main"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

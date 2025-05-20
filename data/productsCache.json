@@ -1,0 +1,768 @@
+[
+  {
+    "_id": "682640b9aac71488345920bb",
+    "Codigo_Producto": "61134",
+    "caracteristicas": {
+      "nombre_del_producto": "Chipeadora PTO A141XL - Chasis 25km/h - Abertura 410 x 300mm",
+      "modelo": "A141XL - Chasis 25km/h",
+      "descontinuado": true
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 40220,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Chipeadora PTO A141XL - Chasis 25km/h - Abertura 410 x 300mm",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "updatedAt": "2025-05-19T20:18:32.042Z",
+    "fecha_cotizacion": "2023",
+    "especificaciones_tecnicas": {
+      "DIMENSIONES": {
+        "PESO": "1950 [kg]",
+        "ANCHO": "1.6 [m]",
+        "ALTO CON CAÑÓN DE DESCARGA": "2.9 [m]"
+      },
+      "ALTO SIN CAÑÓN DE DESCARGA": {
+        "LARGO": "2.3 [m]"
+      },
+      "LARGO (TOLVA ABIERTA)": {
+        "ALTO DESDE EL SUELO A TOLVA": "0.65 [m]",
+        "ROTACIÓN DE LA MESA DE CHIPEADORA": "-"
+      },
+      "SISTEMA DE POTENCIA": {
+        "MOTOR": "Sin motor. Requiere toma de fuerza (PTO)",
+        "TIPO DE COMBUSTIBLE": "-",
+        "ESTANQUE DE COMBUSTIBLE": "-",
+        "ESTANQUE HIDRAULICO": "64 L",
+        "POTENCIA DEL MOTOR": "Requiere 82 [HP]"
+      },
+      "REQUISITO MÁXIMO DE CAUDAL HIDRÁULICO": {
+        "SISTEMA DE ENFRIAMIENTO": "-",
+        "CONTROL DE OPERACIÓN": "?",
+        "NIVEL DE RUIDO": "114 dB"
+      },
+      "SISTEMA DE ALIMENTACIÓN": {
+        "PRODUCCIÓN": "35 [m³/hr]",
+        "TIPO DE ALIMENTACIÓN": "Alimentación Manual",
+        "TAMAÑO DE TOLVA DE ENTRADA (ANCHO X ALTO)": "1370 x 850 [mm]",
+        "TAMAÑO DE GARGANTA DE ALIMENTACIÓN": "410 x 300 [mm]",
+        "DIAMETRO DE ENTRADA": "300 [mm]",
+        "LARGO CINTA DE ALIMENTACION": "-",
+        "ENTRADA  DE TOLVA PLEGABLE": "Complemento de la tolva que permite ampliar la superficie receptora de material y que se puede plegar para el transporte, cubriendo gran parte de la tolva de entrada.",
+        "RODILLOS DE ALIMENTACIÓN": "Doble Rodillo de Alimentación",
+        "DIMENSIONES DE RODILLOS DE ALIMENTACIÓN": "Diámetro Rodillo Superior: 120 mm Diámetro Rodillo Inferior: 120 mm",
+        "MATERIALIDAD DE RODILLOS DE ALIMENTACIÓN": "Construidos con material sólido de alta calidad.                                                \r\nPosible de ser reafilados y soldados en caso de desgaste.",
+        "ACCIONAMIENTO DE RODILLOS DE ALIMENTACIÓN": "Accionamiento hidráulico directo de los rodillos de alimentación mediante una transmisión de engranajes con igual velocidad de rotación de los cilindros de alimentación superior e inferior. Bloqueo simultáneo de rodillos para un máximo agarre.",
+        "OPERACIÓN DE RODILLOS DE ALIMENTACIÓN": "Rodillo de alimentación superior suspendido pendularmente. Se orienta de forma radial, lo cual significa que conduce el material hacia el radio exterior del disco de corte en donde la velocidad periférica es más alta, consiguiendo mayor potencia de corte",
+        "SISTEMA DE ALIMENTACIÓN INTELIGENTE (AUTOFEED)": "?"
+      },
+      "SISTEMA DE CORTE": {
+        "ELEMENTO DE CORTE": "Disco",
+        "PESO DE ELEMENTO DE CORTE": "270 [kg]",
+        "NÚMERO DE CUCHILLOS": "2 Cuchillos reafilables de doble ángulo."
+      },
+      "DIMENSIÓN TAMBOR": {
+        "DIMENSIÓN DISCO DE CORTE": "1060 [mm] de diámetro x 40 [mm] de espesor",
+        "RPM DE OPERACIÓN DEL DISCO DE CORTE": "1000 RPM",
+        "LONGITUD DE CORTE DE CHIP": "Ajustable entre 5-20 [mm]",
+        "SISTEMA DE REGULACIÓN DE LARGO DE CHIP": "Longitud ajustable a través de la modificación hidráulica de la velocidad de rotación de los rodillos.",
+        "ESTABILIDAD DE OPERACIÓN": "El Disco de Corte integra aspas ubicadas desde el canto exterior del disco hasta el eje principal, los que garantizan la absoluta estabilidad en todo el diámetro del disco de corte.",
+        "IMPULSIÓN DE CHIPS": "Mediante el gran tamaño de las aspas en conjunto con una carcasa de forma cónica, se logra un efecto soplador con gran capacidad de descarga.                      \r\n\r\nEl disco de corte está abierto hacia el lado exterior en el lugar de ubicación del cuchillo de corte. Por medio de esto, todo el largo del cuchillo de corte es utilizado, así todo el material astillado es expulsado en forma óptima y sin obstrucciones",
+        "CAÑÓN DE DESCARGA": "Dirigible en 360°, manualmente giratoria, con deflector abatible que direcciona la descarga",
+        "AUMENTO DE INERCIA DE DISCO DE CORTE": "Por medio de masas especiales puestos en el disco de corte se logra una alta inercia con su correspondiente potencia.",
+        "TIPO DE CUCHILLOS": "Cuchillos de acero especial para trabajo forestal, con doble ángulo de filo para un corte en dos etapas. Primero separa el material y posteriormente produce un corte limpio y controlado.\r\n\r\nPor medio del doble ángulo de filo se logra reducir la emisión de ruido y la potencia requerida para el corte de material.",
+        "AJUSTE DE CUCHILLOS": "Los cuchillos son ubicados con una inclinación de 3° sobre el disco de corte, sufriendo un menor desgaste y requiriendo un menor esfuerzo para el desarrollo de su trabajo.                                                            \r\n\r\nLos cuchillos de corte son asegurados a través de pernos Allen, lo que además asegura un rápido montaje y desmontaje.",
+        "YUNQUE": "Dos yunques, horizontal y vertical, con dos lados utilizables",
+        "DIMENSIONES DE LA CRIBA": "-"
+      },
+      "CARACTERÍSTICAS CHASIS Y ACCESORIOS": {
+        "METODO DE DESPLAZAMIENTO": "Radial",
+        "CONSTRUCCIÓN": "Chasis completamente galvanizado",
+        "EJE": "Eje simple",
+        "CANTIDAD DE RUEDAS": "2"
+      },
+      "RUEDA DE APOYO DELANTERA": {
+        "ENGANCHE": "Enganche para remolque tipo anillo o de bola, ajustable en altura",
+        "BARRA DE REMOLQUE": "Ajustable en altura, manteniendo el enganche a 90° en todo momento",
+        "SISTEMA DE ORUGA": "-",
+        "SISTEMA DE COMPENSACION DE NIVEL": "-"
+      },
+      "VELOCIDAD MÁXIMA": {
+        "FUNCIONAMIENTO ELÉCTRICO": "Sistema 12 [Volt]"
+      },
+      "PROTECCION DE FOCOS": {
+        "COLOR": "Naranjo (RAL 2011)",
+        "FRENO": "-"
+      },
+      "EXIGENCIAS Y SISTEMA DE SEGURIDAD": {
+        "EXIGENCIAS NORMATIVAS": "Cumple exigencias de la CE",
+        "BARRA DE COMANDO": "Barra direccional de alimentación, que acciona avance/neutro/reversa.",
+        "INSTRUCCIONES DE SEGURIDAD EN MÁQUINA": "Cumple con las Exigencias normativas para la circulación vial en calles nacionales.",
+        "NORMATIVA DE CIRCULACIÓN VIAL": "Mediante calcomanías distribuidas sobre la máquina."
+      }
+    },
+    "descontinuado": true,
+    "codigo_producto": "61134",
+    "nombre_del_producto": "Chipeadora PTO A141XL - Chasis 25km/h - Abertura 410 x 300mm",
+    "Modelo": "A141XL - Chasis 25km/h",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920bc",
+    "Codigo_Producto": "61135",
+    "caracteristicas": {
+      "nombre_del_producto": "Chipeadora PTO A141XL - Chasis 80km/h - Abertura 410 x 300mm",
+      "modelo": "A141XL - Chasis 80km/h"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 44580,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Chipeadora PTO A141XL - Chasis 80km/h - Abertura 410 x 300mm",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61135",
+    "nombre_del_producto": "Chipeadora PTO A141XL - Chasis 80km/h - Abertura 410 x 300mm",
+    "Modelo": "A141XL - Chasis 80km/h",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920bd",
+    "Codigo_Producto": "20735",
+    "caracteristicas": {
+      "nombre_del_producto": ": Enganche para Remolque tipo Bola para Chipeadora 141XL - Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 275,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Enganche para Remolque tipo Bola para Chipeadora 141XL - Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "20735",
+    "nombre_del_producto": ": Enganche para Remolque tipo Bola para Chipeadora 141XL - Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920be",
+    "Codigo_Producto": "61133",
+    "caracteristicas": {
+      "nombre_del_producto": ": Polea Reductora Correa en V (para 1000 y 540rpm) para Chipeadora A141XL - PTO",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 1800,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Polea Reductora Correa en V (para 1000 y 540rpm) para Chipeadora A141XL - PTO",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61133",
+    "nombre_del_producto": ": Polea Reductora Correa en V (para 1000 y 540rpm) para Chipeadora A141XL - PTO",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920bf",
+    "Codigo_Producto": "16521",
+    "caracteristicas": {
+      "nombre_del_producto": ": Eje PTO con Disco Volante de Inercia para Chipeadora A141XL - PTO",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 695,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Eje PTO con Disco Volante de Inercia para Chipeadora A141XL - PTO",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "16521",
+    "nombre_del_producto": ": Eje PTO con Disco Volante de Inercia para Chipeadora A141XL - PTO",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c0",
+    "Codigo_Producto": "16902",
+    "caracteristicas": {
+      "nombre_del_producto": ": Eje PTO con Disco Volante de Inercia y Embrague para Chipeadora A141XL - PTO",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 1960,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Eje PTO con Disco Volante de Inercia y Embrague para Chipeadora A141XL - PTO",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "16902",
+    "nombre_del_producto": ": Eje PTO con Disco Volante de Inercia y Embrague para Chipeadora A141XL - PTO",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c1",
+    "Codigo_Producto": "61137",
+    "caracteristicas": {
+      "nombre_del_producto": ": Mesa Giratoria 2 x 90° con Polea Reductora Correa en V para Chipeadora A141XL - PTO",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 8780,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Mesa Giratoria 2 x 90° con Polea Reductora Correa en V para Chipeadora A141XL - PTO",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61137",
+    "nombre_del_producto": ": Mesa Giratoria 2 x 90° con Polea Reductora Correa en V para Chipeadora A141XL - PTO",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c2",
+    "Codigo_Producto": "61170",
+    "caracteristicas": {
+      "nombre_del_producto": ": Acoplamiento para Remolque para Chipeadora A141XL - PTO",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 485,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Acoplamiento para Remolque para Chipeadora A141XL - PTO",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61170",
+    "nombre_del_producto": ": Acoplamiento para Remolque para Chipeadora A141XL - PTO",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c3",
+    "Codigo_Producto": "61136",
+    "caracteristicas": {
+      "nombre_del_producto": ": Disco Volante con Tres Cuchillas para Chipeadora A141XL - PTO/Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 1510,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Disco Volante con Tres Cuchillas para Chipeadora A141XL - PTO/Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61136",
+    "nombre_del_producto": ": Disco Volante con Tres Cuchillas para Chipeadora A141XL - PTO/Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c4",
+    "Codigo_Producto": "61964",
+    "caracteristicas": {
+      "nombre_del_producto": ": Kit de Reducción de Ruido: Cuchillas y Rodillo Superior Dentados para Chipeadora A141XL - PTO/Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 1140,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Kit de Reducción de Ruido: Cuchillas y Rodillo Superior Dentados para Chipeadora A141XL - PTO/Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61964",
+    "nombre_del_producto": ": Kit de Reducción de Ruido: Cuchillas y Rodillo Superior Dentados para Chipeadora A141XL - PTO/Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c5",
+    "Codigo_Producto": "61106",
+    "caracteristicas": {
+      "nombre_del_producto": "Chipeadora Motor A141XL - 75 HP H - Chasis 80km/h - Mesa giratoria - Abertura 410 x 300mm",
+      "modelo": "A141XL - 75 HP H - Chasis 80km/h - Mesa giratoria"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 83580,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Chipeadora Motor A141XL - 75 HP H - Chasis 80km/h - Mesa giratoria - Abertura 410 x 300mm",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61106",
+    "nombre_del_producto": "Chipeadora Motor A141XL - 75 HP H - Chasis 80km/h - Mesa giratoria - Abertura 410 x 300mm",
+    "Modelo": "A141XL - 75 HP H - Chasis 80km/h - Mesa giratoria",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c6",
+    "Codigo_Producto": "61141",
+    "caracteristicas": {
+      "nombre_del_producto": ": Sistema Hidráulico con Aceite Hidráulico Biodegradable para Chipeadora A141XL - PTO/Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 265,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Sistema Hidráulico con Aceite Hidráulico Biodegradable para Chipeadora A141XL - PTO/Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61141",
+    "nombre_del_producto": ": Sistema Hidráulico con Aceite Hidráulico Biodegradable para Chipeadora A141XL - PTO/Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c7",
+    "Codigo_Producto": "61177",
+    "caracteristicas": {
+      "nombre_del_producto": ": Color Diferente RAL para Chipeadora A141XL - PTO/Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 1125,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Color Diferente RAL para Chipeadora A141XL - PTO/Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61177",
+    "nombre_del_producto": ": Color Diferente RAL para Chipeadora A141XL - PTO/Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c8",
+    "Codigo_Producto": "61160",
+    "caracteristicas": {
+      "nombre_del_producto": ": Rueda de Repuesto con Soporte para Chipeadora A141XL - PTO/Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 575,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Rueda de Repuesto con Soporte para Chipeadora A141XL - PTO/Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61160",
+    "nombre_del_producto": ": Rueda de Repuesto con Soporte para Chipeadora A141XL - PTO/Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920c9",
+    "Codigo_Producto": "61124",
+    "caracteristicas": {
+      "nombre_del_producto": ": Disco Volante con Sistema de Peine para Chips de Alta Calidad para Chipeadora A141XL - PTO/Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 2670,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Disco Volante con Sistema de Peine para Chips de Alta Calidad para Chipeadora A141XL - PTO/Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61124",
+    "nombre_del_producto": ": Disco Volante con Sistema de Peine para Chips de Alta Calidad para Chipeadora A141XL - PTO/Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920ca",
+    "Codigo_Producto": "61911",
+    "caracteristicas": {
+      "nombre_del_producto": ": Controlador Electrónico con Sensor en Sistema de Alimentación para Chipeadora A530XL/A540/A425/A450/A328/A231/A141XL/JT600 - PTO",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 1410,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Controlador Electrónico con Sensor en Sistema de Alimentación para Chipeadora A530XL/A540/A425/A450/A328/A231/A141XL/JT600 - PTO",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61911",
+    "nombre_del_producto": ": Controlador Electrónico con Sensor en Sistema de Alimentación para Chipeadora A530XL/A540/A425/A450/A328/A231/A141XL/JT600 - PTO",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920cb",
+    "Codigo_Producto": "61970",
+    "caracteristicas": {
+      "nombre_del_producto": ": Tablero de Luz para Chipeadora con 3 Puntos de Conexión para Chipeadora 530XL/A540/A425/A328/A231/A141XL - PTO",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 510,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Tablero de Luz para Chipeadora con 3 Puntos de Conexión para Chipeadora 530XL/A540/A425/A328/A231/A141XL - PTO",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61970",
+    "nombre_del_producto": ": Tablero de Luz para Chipeadora con 3 Puntos de Conexión para Chipeadora 530XL/A540/A425/A328/A231/A141XL - PTO",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920cc",
+    "Codigo_Producto": "61971",
+    "caracteristicas": {
+      "nombre_del_producto": ": Tablero de Luz para Chipeadora Remolcable 530XL/A540/A425/A328/A231/A141XL - PTO",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 705,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Tablero de Luz para Chipeadora Remolcable 530XL/A540/A425/A328/A231/A141XL - PTO",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61971",
+    "nombre_del_producto": ": Tablero de Luz para Chipeadora Remolcable 530XL/A540/A425/A328/A231/A141XL - PTO",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920cd",
+    "Codigo_Producto": "61968",
+    "caracteristicas": {
+      "nombre_del_producto": ": Enganche para Remolque tipo Anillo para Chipeadora A530/A530L/A540/A550/A425/A328/A231/A141XL - PTO/Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 275,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Enganche para Remolque tipo Anillo para Chipeadora A530/A530L/A540/A550/A425/A328/A231/A141XL - PTO/Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61968",
+    "nombre_del_producto": ": Enganche para Remolque tipo Anillo para Chipeadora A530/A530L/A540/A550/A425/A328/A231/A141XL - PTO/Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920ce",
+    "Codigo_Producto": "61969",
+    "caracteristicas": {
+      "nombre_del_producto": ": Enganche para Remolque Tipo Bola para Chipeadora A530/A530L/A540/A550/A425/A328/A231/A141XL - PTO/Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 275,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Enganche para Remolque Tipo Bola para Chipeadora A530/A530L/A540/A550/A425/A328/A231/A141XL - PTO/Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora PTO",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61969",
+    "nombre_del_producto": ": Enganche para Remolque Tipo Bola para Chipeadora A530/A530L/A540/A550/A425/A328/A231/A141XL - PTO/Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920cf",
+    "Codigo_Producto": "61972",
+    "caracteristicas": {
+      "nombre_del_producto": ": Protección de Focos para Chipeadora A530/530L/A540/A550/A425/A450/A328/A350/A141XL - Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 200,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Protección de Focos para Chipeadora A530/530L/A540/A550/A425/A450/A328/A350/A141XL - Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "61972",
+    "nombre_del_producto": ": Protección de Focos para Chipeadora A530/530L/A540/A550/A425/A450/A328/A350/A141XL - Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  },
+  {
+    "_id": "682640b9aac71488345920d0",
+    "Codigo_Producto": "20587",
+    "caracteristicas": {
+      "nombre_del_producto": ": Enganche para Remolque Tipo Anillo para Chipeadora A141XL - Motor",
+      "modelo": "A141XL"
+    },
+    "createdAt": "2025-05-15T19:30:01.807Z",
+    "datos_contables": {
+      "costo_fabrica": 275,
+      "divisa_costo": "EUR",
+      "fecha_cotizacion": "2023"
+    },
+    "descripcion": "Opcional: Enganche para Remolque Tipo Anillo para Chipeadora A141XL - Motor",
+    "dimensiones": {
+      "largo_mm": 50,
+      "ancho_mm": 50,
+      "alto_mm": 50
+    },
+    "es_opcional": false,
+    "peso_kg": 50,
+    "producto": "Chipeadora Motor",
+    "tipo": "opcional",
+    "updatedAt": "2025-05-15T20:30:11.503Z",
+    "fecha_cotizacion": "2023",
+    "codigo_producto": "20587",
+    "nombre_del_producto": ": Enganche para Remolque Tipo Anillo para Chipeadora A141XL - Motor",
+    "Modelo": "A141XL",
+    "Descripcion": "-",
+    "categoria": "-"
+  }
+]
