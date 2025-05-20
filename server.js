@@ -89,6 +89,26 @@ const initializeServer = async () => {
     app.use('/api/calculo-historial', calculoHistorialRoutes);
     // app.use('/api/webhook', webhookRoutes); // <-- Comentar ya que no existe
     
+    // --- NUEVA RUTA RAIZ DE LA API para listar endpoints ---
+    app.get('/api', (req, res) => {
+      res.status(200).json({
+        message: 'Bienvenido a la API de MCS ERP Backend',
+        // Formato mejorado para listar los endpoints principales
+        availableEndpointsOverview: {
+          '/api/users': 'Gestión de usuarios (registro, login)',
+          '/api/products': 'Gestión de productos (obtener, filtrar, opcionales, caché, etc.)',
+          '/api/currency': 'Obtener valores de divisas (dólar, euro)',
+          '/api/costo-perfiles': 'Gestión de perfiles de costo',
+          '/api/langchain': 'Funcionalidades de Langchain (procesamiento de lenguaje, etc.)',
+          '/api/calculo-historial': 'Historial de cálculos y operaciones guardadas',
+          // Añadir aquí otros grupos de rutas principales según se agreguen
+        },
+        documentation: '[Considera añadir un enlace a la documentación detallada aquí si existe]', // Mantén o mejora este enlace
+        note: 'Esta es una lista de los principales grupos de endpoints. Para detalles específicos (métodos GET, POST, PUT, DELETE, parámetros, etc.), por favor consulte la documentación completa de la API.'
+      });
+    });
+    // -----------------------------------------------------
+    
     // Inicializar caché
     console.log('[Server] Initializing cache...');
     await initializeCache();
