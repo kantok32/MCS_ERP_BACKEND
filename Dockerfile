@@ -20,7 +20,7 @@
 
 
 # Node Version
-FROM node:21
+FROM node:18-alpine
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -31,7 +31,7 @@ ENV HOST=0.0.0.0
 COPY package*.json ./
 
 # Remove existing node_modules and install project dependencies
-RUN rm -rf node_modules && npm install
+RUN npm install --production
 
 # Copy the rest of the application source code to the container
 COPY . .
@@ -39,7 +39,7 @@ COPY . .
 
 
 # Expose the port your Nest.js application is listening on
-EXPOSE 3000
+EXPOSE 5001
 
 # Command to start your Nest.js application
-CMD [ "npm", "run", "start:prod" ]
+CMD ["node", "server.js"]

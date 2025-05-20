@@ -95,9 +95,9 @@ const initializeServer = async () => {
     console.log('[Server] Cache initialization complete.');
     
     // Iniciar el servidor
-    const PORT = port || process.env.PORT || 5001;
-    app.listen(PORT, () => {
-      console.log(`\n---- Server running on port ${PORT} ----`);
+    const PORT = process.env.PORT || port || 5001;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n---- Server running on 0.0.0.0:${PORT} ----`);
       console.log(`Backend API accessible at: http://localhost:${PORT}/api`);
       console.log(`Admin panel accessible at: http://localhost:5173/admin\n`);
     }).on('error', (err) => {
