@@ -33,13 +33,13 @@ options:
   substitutionOption: ALLOW_LOOSE
   logging: CLOUD_LOGGING_ONLY
 substitutions:
-  REPO_NAME: smartbillingbackend
-  _TRIGGER_ID: e5acd4f4-ac44-454a-817e-97eeccd6f8aa
+  REPO_NAME: MCS_ERP_BACKEND
+  _TRIGGER_ID: 6103a180-20f7-43d6-80e5-a7a93c7c1e67
   _DEPLOY_REGION: southamerica-west1
   _AR_HOSTNAME: southamerica-west1-docker.pkg.dev
   _PLATFORM: managed
-  _SERVICE_NAME: smartbilling-backend
+  _SERVICE_NAME: mcs-erp-backend
 tags:
   - gcp-cloud-build-deploy-cloud-run
   - gcp-cloud-build-deploy-cloud-run-managed
-  - smartbilling-backend
+  - mcs-erp-backend
