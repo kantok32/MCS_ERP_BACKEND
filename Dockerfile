@@ -36,8 +36,7 @@ RUN rm -rf node_modules && npm install
 # Copy the rest of the application source code to the container
 COPY . .
 
-# Build the app (generate /dist/)
-RUN npm run start
+
 
 # Expose the port your Nest.js application is listening on
 EXPOSE 3000
