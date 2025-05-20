@@ -37,7 +37,7 @@ RUN rm -rf node_modules && npm install
 COPY . .
 
 # Build the app (generate /dist/)
-RUN npm run build
+#RUN npm run build
 
 # Expose the port your Nest.js application is listening on
 EXPOSE 3000
