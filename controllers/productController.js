@@ -815,6 +815,83 @@ const toggleProductDiscontinuedStatus = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get optional products from body
+// @route   POST /api/products/opcionales-by-body
+// @access  Public
+const getOptionalProductsFromBody = async (req, res) => {
+  try {
+    const { codigo } = req.body;
+
+    if (!codigo) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parámetro inválido',
+        message: 'Se requiere el código del producto principal en el body'
+      });
+    }
+
+    console.log(`[opcionales-by-body] Buscando producto principal con código: ${codigo}`);
+
+    // Si el caché está vacío, intentar inicializarlo
+    if (cachedProducts.length === 0) {
+      console.log('[opcionales-by-body] Cache vacío, intentando inicializar...');
+      await initializeProductCache();
+    }
+
+    // Buscar el producto principal en el caché
+    const productoPrincipal = cachedProducts.find(p => p.Codigo_Producto === codigo);
+
+    if (!productoPrincipal) {
+      return res.status(404).json({
+        success: false,
+        error: 'No encontrado',
+        message: `Producto principal con código ${codigo} no encontrado en el caché.`
+      });
+    }
+
+    // Filtrar los productos opcionales del caché
+    const productosOpcionales = cachedProducts.filter(producto => {
+      // Verificar que no sea el mismo producto
+      if (producto.Codigo_Producto === codigo) {
+        return false;
+      }
+
+      // Verificar que sea un producto opcional
+      const esOpcional = producto.tipo === "opcional" || 
+                        (producto.nombre_comercial && producto.nombre_comercial.toLowerCase().includes("opcional")) ||
+                        producto.es_opcional === true;
+
+      // Verificar que tenga modelo
+      const tieneModelo = producto.caracteristicas && producto.caracteristicas.modelo;
+
+      // Verificar que coincida el tipo de producto (PTO/Motor)
+      const coincideTipo = producto.producto && 
+                          productoPrincipal.producto && 
+                          producto.producto.toLowerCase() === productoPrincipal.producto.toLowerCase();
+
+      return esOpcional && tieneModelo && coincideTipo;
+    });
+
+    console.log(`[opcionales-by-body] Encontrados ${productosOpcionales.length} productos opcionales para el producto ${codigo}`);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        productoPrincipal,
+        productosOpcionales
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al obtener productos opcionales desde body:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error al obtener productos opcionales',
+      message: error.message
+    });
+  }
+};
+
 module.exports = { 
   fetchProducts, 
   getCachedProducts, 
@@ -833,5 +910,6 @@ module.exports = {
   updateProduct,
   testGetBaseProductsFromDBController,
   getCategories,
-  toggleProductDiscontinuedStatus
+  toggleProductDiscontinuedStatus,
+  getOptionalProductsFromBody
 };

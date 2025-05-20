@@ -41,6 +41,7 @@ router.delete('/cache', productController.clearCache); // Corregido DELETE
 router.get('/detail', productController.getProductDetail);
 router.get('/opcionales', productController.getOptionalProducts);
 router.get('/opcionales/raw', productController.getRawOptionalProducts);
+router.post('/opcionales-by-body', productController.getOptionalProductsFromBody);
 
 // --- NUEVA RUTA DE PRUEBA PARA DB ---
 router.get('/test/db-base-products', productController.testGetBaseProductsFromDBController);
