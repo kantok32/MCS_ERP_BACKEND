@@ -3,6 +3,8 @@ const CalculoHistorial = require('../models/CalculoHistorial');
 const Producto = require('../models/Producto');
 const ContadorConfiguracion = require('../models/ContadorConfiguracion');
 const pdf = require('html-pdf');
+const fs = require('fs');
+const path = require('path');
 
 // Función helper para obtener el siguiente número de configuración
 async function obtenerSiguienteNumeroConfiguracion(nombreContador = 'calculoHistorialCounter') {
@@ -122,6 +124,24 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
         });
 
         // 4. Generar PDF usando html-pdf
+        const tmpDir = process.env.TMPDIR || '/app/tmp';
+        const tmpFile = path.join(tmpDir, `config_${numeroSecuencialConfig}.pdf`);
+
+        // Ensure temp directory exists and is writable
+        try {
+            if (!fs.existsSync(tmpDir)) {
+                fs.mkdirSync(tmpDir, { recursive: true });
+            }
+            // Test write permissions
+            const testFile = path.join(tmpDir, 'test.txt');
+            fs.writeFileSync(testFile, 'test');
+            fs.unlinkSync(testFile);
+            console.log('Directorio temporal verificado y con permisos de escritura');
+        } catch (error) {
+            console.error('Error al verificar el directorio temporal:', error);
+            throw new Error(`No se pudo acceder al directorio temporal: ${error.message}`);
+        }
+
         const opcionesPdf = {
             format: 'A4',
             border: {
@@ -131,21 +151,28 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
                 left: '0.5in'
             },
             phantomPath: process.env.PHANTOMJS_BIN || '/usr/local/bin/phantomjs',
-            phantomArgs: ['--local-url-access=false'],
+            phantomArgs: [
+                '--local-url-access=false',
+                '--ignore-ssl-errors=true',
+                '--web-security=false'
+            ],
             timeout: 30000, // 30 seconds timeout
-            directory: process.env.TMPDIR || '/app/tmp',
+            directory: tmpDir,
             type: 'pdf',
             quality: '100',
             renderDelay: 1000, // Add a small delay to ensure content is rendered
             script: '/app/node_modules/html-pdf/lib/scripts/pdf_a4_portrait.js',
-            filename: `${process.env.TMPDIR || '/app/tmp'}/config_${numeroSecuencialConfig}.pdf`
+            filename: tmpFile
         };
 
         // Wrap PDF generation in a Promise for better error handling
         const generatePdf = () => {
             return new Promise((resolve, reject) => {
                 try {
-                    pdf.create(htmlParaPdf, opcionesPdf).toFile(opcionesPdf.filename, (err, res) => {
+                    console.log('Iniciando creación del PDF con PhantomJS...');
+                    const pdfInstance = pdf.create(htmlParaPdf, opcionesPdf);
+                    
+                    pdfInstance.toFile(tmpFile, (err, res) => {
                         if (err) {
                             console.error('Error al generar el PDF:', err);
                             reject(err);
@@ -158,8 +185,10 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
                             return;
                         }
 
+                        console.log('PDF generado exitosamente en:', res.filename);
+
                         // Read the generated file
-                        require('fs').readFile(res.filename, (err, buffer) => {
+                        fs.readFile(res.filename, (err, buffer) => {
                             if (err) {
                                 console.error('Error al leer el archivo PDF:', err);
                                 reject(err);
@@ -167,9 +196,11 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
                             }
 
                             // Clean up the temporary file
-                            require('fs').unlink(res.filename, (unlinkErr) => {
+                            fs.unlink(res.filename, (unlinkErr) => {
                                 if (unlinkErr) {
                                     console.warn('Advertencia: No se pudo eliminar el archivo temporal:', unlinkErr);
+                                } else {
+                                    console.log('Archivo temporal eliminado correctamente');
                                 }
                             });
 
@@ -185,9 +216,9 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
 
         try {
             console.log('Iniciando generación de PDF...');
-            console.log('Directorio temporal:', process.env.TMPDIR);
+            console.log('Directorio temporal:', tmpDir);
             console.log('Ruta de PhantomJS:', process.env.PHANTOMJS_BIN);
-            console.log('Archivo temporal:', opcionesPdf.filename);
+            console.log('Archivo temporal:', tmpFile);
             
             const pdfBuffer = await generatePdf();
             console.log('PDF generado exitosamente');
