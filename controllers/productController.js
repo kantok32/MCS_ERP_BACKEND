@@ -717,20 +717,19 @@ const testGetBaseProductsFromDBController = async (req, res) => {
 // @access  Public
 const getProductByCode = asyncHandler(async (req, res) => {
   const codigo = req.params.codigo || req.params.codigoProducto;
-  console.log(`[getProductByCode] Buscando producto con código: ${codigo}`);
+  console.log(`[getProductByCode] Buscando producto con código usando mongoDataService: ${codigo}`);
   
-  // Añadir logs antes de la consulta a la base de datos
-  console.log(`[getProductByCode] Realizando consulta a DB para Codigo_Producto: ${codigo}`);
-  console.log(`[getProductByCode] Estado de conexión Mongoose: ${mongoose.connection.readyState}`); // 1 significa conectado
-  
-  const producto = await Producto.findOne({ Codigo_Producto: codigo });
+  // Usar el servicio que utiliza el driver nativo en lugar de Mongoose directamente
+  const producto = await getProductByCodeFromDB(codigo);
 
   if (producto) {
+    console.log(`[getProductByCode] Producto ${codigo} encontrado.`);
     res.json({
       success: true,
       data: producto
     });
   } else {
+    console.warn(`[getProductByCode] Producto ${codigo} no encontrado en DB.`);
     res.status(404);
     throw new Error('Producto no encontrado');
   }
