@@ -717,7 +717,11 @@ const testGetBaseProductsFromDBController = async (req, res) => {
 // @access  Public
 const getProductByCode = asyncHandler(async (req, res) => {
   const codigo = req.params.codigo || req.params.codigoProducto;
-  console.log(`Buscando producto con código: ${codigo}`);
+  console.log(`[getProductByCode] Buscando producto con código: ${codigo}`);
+  
+  // Añadir logs antes de la consulta a la base de datos
+  console.log(`[getProductByCode] Realizando consulta a DB para Codigo_Producto: ${codigo}`);
+  console.log(`[getProductByCode] Estado de conexión Mongoose: ${mongoose.connection.readyState}`); // 1 significa conectado
   
   const producto = await Producto.findOne({ Codigo_Producto: codigo });
 
