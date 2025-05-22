@@ -131,21 +131,39 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
                 left: '0.5in'
             },
             phantomPath: process.env.PHANTOMJS_BIN || '/usr/local/bin/phantomjs',
-            phantomArgs: ['--local-url-access=false']
+            phantomArgs: ['--local-url-access=false'],
+            timeout: 30000, // 30 seconds timeout
+            directory: process.env.TMPDIR || '/tmp/pdf',
+            type: 'pdf',
+            quality: '100'
         };
 
-        pdf.create(htmlParaPdf, opcionesPdf).toBuffer((err, buffer) => {
-            if (err) {
-                console.error('Error al generar PDF:', err);
-                throw err;
-            }
+        // Wrap PDF generation in a Promise for better error handling
+        const generatePdf = () => {
+            return new Promise((resolve, reject) => {
+                pdf.create(htmlParaPdf, opcionesPdf).toBuffer((err, buffer) => {
+                    if (err) {
+                        console.error('Error al generar PDF:', err);
+                        reject(err);
+                        return;
+                    }
+                    resolve(buffer);
+                });
+            });
+        };
 
+        try {
+            const pdfBuffer = await generatePdf();
+            
             res.header('Content-Type', 'application/pdf');
             res.header('Content-Disposition', `inline; filename="Configuracion_${numeroSecuencialConfig}.pdf"`);
             res.header('X-Calculo-ID', nuevoHistorial._id.toString());
             res.header('X-Numero-Cotizacion', numeroSecuencialConfig.toString());
-            res.send(buffer);
-        });
+            res.send(pdfBuffer);
+        } catch (error) {
+            console.error('Error en la generación del PDF:', error);
+            throw error;
+        }
 
     } catch (error) {
         console.error('Error en guardarYExportarCalculos:', error);

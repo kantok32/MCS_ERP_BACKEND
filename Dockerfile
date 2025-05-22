@@ -48,9 +48,13 @@ RUN apk add --no-cache \
 # Install PhantomJS globally
 RUN npm install -g phantomjs-prebuilt
 
+# Create temp directory for PDF generation
+RUN mkdir -p /tmp/pdf && chmod 777 /tmp/pdf
+
 # Set PhantomJS environment variables
 ENV PHANTOMJS_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PHANTOMJS_BIN=/usr/local/bin/phantomjs
+ENV TMPDIR=/tmp/pdf
 
 # Copy package.json and package-lock.json to the container
 COPY package*.json ./
