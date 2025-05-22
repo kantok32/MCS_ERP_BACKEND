@@ -712,27 +712,32 @@ const testGetBaseProductsFromDBController = async (req, res) => {
   }
 };
 
-// @desc    Fetch a single product by its Codigo_Producto
-// @route   GET /api/products/:codigo or /api/products/code/:codigoProducto
+// @desc    Get product by code
+// @route   GET /api/products/:codigo
 // @access  Public
 const getProductByCode = asyncHandler(async (req, res) => {
-  const codigo = req.params.codigo || req.params.codigoProducto;
-  console.log(`[getProductByCode] Buscando producto con código usando mongoDataService: ${codigo}`);
-  
-  // Usar el servicio que utiliza el driver nativo en lugar de Mongoose directamente
-  const producto = await getProductByCodeFromDB(codigo);
+    const { codigo } = req.params;
+    
+    if (!codigo) {
+        return res.status(400).json({ 
+            success: false,
+            message: "El código del producto es requerido" 
+        });
+    }
 
-  if (producto) {
-    console.log(`[getProductByCode] Producto ${codigo} encontrado.`);
-    res.json({
-      success: true,
-      data: producto
+    const product = await Producto.findOne({ Codigo_Producto: codigo });
+    
+    if (!product) {
+        return res.status(404).json({ 
+            success: false,
+            message: `Producto con código ${codigo} no encontrado` 
+        });
+    }
+
+    res.status(200).json({
+        success: true,
+        data: product
     });
-  } else {
-    console.warn(`[getProductByCode] Producto ${codigo} no encontrado en DB.`);
-    res.status(404);
-    throw new Error('Producto no encontrado');
-  }
 });
 
 // @desc    Update a product (e.g., mark as descontinuado)
@@ -901,6 +906,38 @@ const getOptionalProductsFromBody = async (req, res) => {
   }
 };
 
+// @desc    Get technical specifications of a product
+// @route   GET /api/products/:codigo/specifications
+// @access  Public
+const getProductSpecifications = asyncHandler(async (req, res) => {
+    const { codigo } = req.params;
+    if (!codigo) {
+        return res.status(400).json({
+            success: false,
+            message: 'El código del producto es requerido'
+        });
+    }
+    const product = await Producto.findOne({ Codigo_Producto: codigo });
+    if (!product) {
+        return res.status(404).json({
+            success: false,
+            message: `Producto con código ${codigo} no encontrado`
+        });
+    }
+    // Extract technical specifications (customize as needed)
+    const specs = {
+        codigo_producto: product.Codigo_Producto,
+        nombre_del_producto: product.caracteristicas?.nombre_del_producto || product.nombre_del_producto,
+        modelo: product.caracteristicas?.modelo || product.modelo,
+        especificaciones_tecnicas: product.especificaciones_tecnicas || {},
+        descontinuado: product.descontinuado || false
+    };
+    res.status(200).json({
+        success: true,
+        data: specs
+    });
+});
+
 module.exports = { 
   fetchProducts, 
   getCachedProducts, 
@@ -920,5 +957,6 @@ module.exports = {
   testGetBaseProductsFromDBController,
   getCategories,
   toggleProductDiscontinuedStatus,
-  getOptionalProductsFromBody
+  getOptionalProductsFromBody,
+  getProductSpecifications
 };

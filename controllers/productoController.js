@@ -5,6 +5,7 @@ const Producto = require('../models/Producto'); // Importar el modelo definido e
 const { fetchAvailableProducts, fetchFilteredProducts, fetchCurrencyValues } = require('../utils/fetchProducts'); // Asumiendo que estas utils aún son necesarias
 const fs = require('fs');
 const axios = require('axios');
+const asyncHandler = require('express-async-handler');
 
 // --- Quitar definiciones de Schema y Modelo de aquí --- 
 // Ya no son necesarias porque se importan desde ../models/Producto
@@ -537,6 +538,53 @@ const clearCache = async (req, res) => {
         res.status(500).json({ message: 'Error al limpiar el caché', error: error.message });
     }
 };
+
+// @desc    Get technical specifications of a product
+// @route   GET /api/products/:codigo/specifications
+// @access  Public
+const getProductSpecifications = asyncHandler(async (req, res) => {
+    try {
+        const { codigo } = req.params;
+        
+        if (!codigo) {
+            return res.status(400).json({ 
+                success: false,
+                message: "El código del producto es requerido" 
+            });
+        }
+
+        const product = await Producto.findOne({ Codigo_Producto: codigo });
+        
+        if (!product) {
+            return res.status(404).json({ 
+                success: false,
+                message: `Producto con código ${codigo} no encontrado` 
+            });
+        }
+
+        // Extraer solo las especificaciones técnicas y datos básicos relevantes
+        const specifications = {
+            codigo_producto: product.Codigo_Producto,
+            nombre_del_producto: product.caracteristicas?.nombre_del_producto,
+            modelo: product.caracteristicas?.modelo,
+            especificaciones_tecnicas: product.especificaciones_tecnicas || {},
+            descontinuado: product.descontinuado || false
+        };
+
+        res.status(200).json({
+            success: true,
+            data: specifications
+        });
+
+    } catch (error) {
+        console.error('[Product Specifications] Error:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Error al obtener las especificaciones técnicas',
+            error: error.message 
+        });
+    }
+});
 
 // <<<--- INICIO: NUEVAS FUNCIONES AUXILIARES Y CONFIGURACIÓN --- >>>
 
@@ -1162,4 +1210,5 @@ module.exports = {
     resetCache, 
     uploadTechnicalSpecifications, // Nueva función para especificaciones matriciales
     uploadBulkProductsMatrix, // Para la carga general de productos (plantilla general)
+    getProductSpecifications,
 }; 
