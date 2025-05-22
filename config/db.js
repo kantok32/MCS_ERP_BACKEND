@@ -16,6 +16,7 @@ const connectDB = async () => {
     const conn = await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      dbName: process.env.DB_NAME
     });
 
     // Configurar opciones para todos los esquemas a nivel global
