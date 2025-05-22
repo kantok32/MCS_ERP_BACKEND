@@ -50,11 +50,11 @@ COPY package*.json ./
 # Install dependencies and PhantomJS
 RUN npm install --production && \
     npm install phantomjs-prebuilt && \
-    ln -s /app/node_modules/phantomjs-prebuilt/lib/phantom/bin/phantomjs /usr/bin/phantomjs
+    chmod +x /app/node_modules/phantomjs-prebuilt/lib/phantom/bin/phantomjs
 
 # Set PhantomJS environment variables
 ENV PHANTOMJS_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PHANTOMJS_BIN=/usr/bin/phantomjs
+ENV PHANTOMJS_BIN=/app/node_modules/phantomjs-prebuilt/lib/phantom/bin/phantomjs
 
 # Copy the rest of the application source code to the container
 COPY . .
