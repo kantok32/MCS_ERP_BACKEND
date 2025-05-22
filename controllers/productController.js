@@ -713,13 +713,19 @@ const testGetBaseProductsFromDBController = async (req, res) => {
 };
 
 // @desc    Fetch a single product by its Codigo_Producto
-// @route   GET /api/products/bycode/:codigo
+// @route   GET /api/products/:codigo or /api/products/code/:codigoProducto
 // @access  Public
 const getProductByCode = asyncHandler(async (req, res) => {
-  const producto = await Producto.findOne({ Codigo_Producto: req.params.codigo });
+  const codigo = req.params.codigo || req.params.codigoProducto;
+  console.log(`Buscando producto con código: ${codigo}`);
+  
+  const producto = await Producto.findOne({ Codigo_Producto: codigo });
 
   if (producto) {
-    res.json(producto);
+    res.json({
+      success: true,
+      data: producto
+    });
   } else {
     res.status(404);
     throw new Error('Producto no encontrado');

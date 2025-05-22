@@ -19,11 +19,10 @@ const upload = multer({ storage: storage });
 // --- Rutas que usan productController (sin 'o' - caché/webhook) ---
 router.get('/fetch', productController.fetchProducts);
 router.get('/', productController.getCachedProducts); // Lista todos los productos (del caché)
+// Añadir ruta directa por código de producto
+router.get('/:codigo', productController.getProductByCode);
 // router.post('/', productController.createProductController); // Comentado para evitar conflicto con productoCtrl si se usara abajo. Asegurar que el controller correcto se usa.
 // Es probable que createProductController sea parte de productController.js y no necesite el alias productoCtrl
-
-// --- NUEVA RUTA para obtener un producto por Codigo_Producto ---
-router.get('/code/:codigoProducto', productController.getProductByCode);
 
 // --- NUEVA RUTA para actualizar un producto por Codigo_Producto ---
 router.put('/code/:codigoProducto', productController.updateProduct);
