@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler');
 const CalculoHistorial = require('../models/CalculoHistorial');
 const Producto = require('../models/Producto');
 const ContadorConfiguracion = require('../models/ContadorConfiguracion');
-const puppeteer = require('puppeteer');
+const pdf = require('html-pdf');
 
 // Función helper para obtener el siguiente número de configuración
 async function obtenerSiguienteNumeroConfiguracion(nombreContador = 'calculoHistorialCounter') {
@@ -68,9 +68,6 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
                     }
                     opcionalesConDescripcion.push({
                         ...opcional,
-                        // El schema ProductoSchema dentro de CalculoHistorial ya tiene un campo Descripcion (con D mayúscula)
-                        // Asegurémonos de mapear al campo correcto o ajustar el schema si es necesario.
-                        // Por ahora, asumiré que el schema interno espera "Descripcion" (con D)
                         Descripcion: descripcionOpcional 
                     });
                 }
@@ -78,7 +75,7 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
             productosConDescripcion.push({
                 principal: {
                     ...item.principal,
-                    Descripcion: descripcionPrincipal // Mapear a Descripcion (con D)
+                    Descripcion: descripcionPrincipal
                 },
                 opcionales: opcionalesConDescripcion
             });
@@ -86,12 +83,11 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
 
         // 2. Guardar en MongoDB con todos los datos
         const nuevoHistorial = await CalculoHistorial.create({
-            itemsParaCotizar: productosConDescripcion, // Usar los items con descripciones populadas
+            itemsParaCotizar: productosConDescripcion,
             resultadosCalculados: resultadosCalculados,
             selectedProfileId: selectedProfileId || null,
             nombrePerfil,
             anoEnCursoGlobal,
-            // Mapeo de cotizacionDetails a los campos del schema CalculoHistorial
             empresaQueCotiza: cotizacionDetails.empresaQueCotiza || 'Mi Empresa por Defecto',
             clienteNombre: cotizacionDetails.clienteNombre,
             clienteRut: cotizacionDetails.clienteRut,
@@ -114,7 +110,6 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
             terminosPago: cotizacionDetails.terminosPago,
             medioPago: cotizacionDetails.medioPago,
             formaPago: cotizacionDetails.formaPago,
-            // usuarioId: req.user ? req.user.id : null, // Descomentar si se usa autenticación
         });
 
         // 3. Generar HTML para el PDF
@@ -126,51 +121,31 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
             anoEnCursoGlobal: nuevoHistorial.anoEnCursoGlobal
         });
 
-        // 4. Generar PDF usando Puppeteer
-        let browser;
-        try {
-            browser = await puppeteer.launch({
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--disable-gpu'
-                ],
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
-                headless: 'new'
-            });
-            
-            const page = await browser.newPage();
-            await page.setContent(htmlParaPdf, {
-                waitUntil: 'networkidle0'
-            });
+        // 4. Generar PDF usando html-pdf
+        const opcionesPdf = {
+            format: 'A4',
+            border: {
+                top: '0.5in',
+                right: '0.5in',
+                bottom: '0.5in',
+                left: '0.5in'
+            },
+            phantomPath: process.env.PHANTOMJS_BIN || '/usr/bin/phantomjs',
+            phantomArgs: ['--local-url-access=false']
+        };
 
-            const pdfBuffer = await page.pdf({
-                format: 'A4',
-                printBackground: true,
-                margin: {
-                    top: '0.5in',
-                    right: '0.5in',
-                    bottom: '0.5in',
-                    left: '0.5in'
-                }
-            });
+        pdf.create(htmlParaPdf, opcionesPdf).toBuffer((err, buffer) => {
+            if (err) {
+                console.error('Error al generar PDF:', err);
+                throw err;
+            }
 
             res.header('Content-Type', 'application/pdf');
             res.header('Content-Disposition', `inline; filename="Configuracion_${numeroSecuencialConfig}.pdf"`);
             res.header('X-Calculo-ID', nuevoHistorial._id.toString());
             res.header('X-Numero-Cotizacion', numeroSecuencialConfig.toString());
-            res.send(pdfBuffer);
-
-        } catch (error) {
-            console.error('Error al generar PDF con Puppeteer:', error);
-            throw error;
-        } finally {
-            if (browser) {
-                await browser.close();
-            }
-        }
+            res.send(buffer);
+        });
 
     } catch (error) {
         console.error('Error en guardarYExportarCalculos:', error);

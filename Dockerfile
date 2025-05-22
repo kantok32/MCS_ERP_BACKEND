@@ -27,22 +27,27 @@ WORKDIR /app
 
 ENV HOST=0.0.0.0 
 
-# Install system dependencies required for Puppeteer
+# Install system dependencies required for PhantomJS
 RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    freetype-dev \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont \
+    python3 \
+    make \
+    g++ \
+    fontconfig \
+    fontconfig-dev \
     font-noto \
-    font-noto-cjk
+    font-noto-cjk \
+    ttf-freefont \
+    ca-certificates \
+    openssl \
+    openssl-dev \
+    curl \
+    curl-dev \
+    zlib \
+    zlib-dev
 
-# Set Puppeteer environment variables
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV CHROME_BIN=/usr/bin/chromium-browser
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+# Set PhantomJS environment variables
+ENV PHANTOMJS_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PHANTOMJS_BIN=/usr/bin/phantomjs
 
 # Copy package.json and package-lock.json to the container
 COPY package*.json ./
