@@ -143,16 +143,9 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
         // Wrap PDF generation in a Promise for better error handling
         const generatePdf = () => {
             return new Promise((resolve, reject) => {
-                const pdfInstance = pdf.create(htmlParaPdf, opcionesPdf);
-                
-                pdfInstance.on('error', (err) => {
-                    console.error('Error en la generación del PDF:', err);
-                    reject(err);
-                });
-
-                pdfInstance.toBuffer((err, buffer) => {
+                pdf.create(htmlParaPdf, opcionesPdf).toBuffer((err, buffer) => {
                     if (err) {
-                        console.error('Error al generar el buffer del PDF:', err);
+                        console.error('Error al generar el PDF:', err);
                         reject(err);
                         return;
                     }
