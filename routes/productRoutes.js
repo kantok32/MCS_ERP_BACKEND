@@ -69,7 +69,7 @@ router.delete('/cache', productController.clearCache);
 // router.post('/upload-bulk', upload.single('archivoExcel'), productoCtrl.uploadBulkProducts); 
 
 // Ruta para la carga PLANA de nuevos equipos (Plantilla General de Equipos)
-// router.post('/upload-plain', upload.single('archivoExcelPlain'), productController.uploadBulkProductsPlain); // Commented out
+router.post('/upload-plain', upload.single('archivoExcelPlain'), productController.uploadBulkProductsPlain); 
 
 // Ruta para la carga MATRICIAL general de productos (si es un formato diferente al de especificaciones)
 // router.post('/upload-matrix', upload.single('archivoExcelMatrix'), productController.uploadBulkProductsMatrix); // Commented out 

@@ -938,6 +938,37 @@ const getProductSpecifications = asyncHandler(async (req, res) => {
     });
 });
 
+// @desc    Upload bulk products from a plain Excel template
+// @route   POST /api/products/upload-plain
+// @access  Private/Admin (assuming)
+const uploadBulkProductsPlain = async (req, res) => {
+    console.log('[Bulk Upload Plain] Request received.');
+
+    if (!req.file) {
+        return res.status(400).json({ message: 'No se subió ningún archivo.' });
+    }
+
+    console.log(`[Bulk Upload Plain] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
+
+    // --- Placeholder Logic ---
+    // TODO: Implement the actual logic to read the plain Excel file,
+    // parse the data, validate it, and save/update products in the database.
+    // You can use 'xlsx' library here to read req.file.buffer.
+    // Remember to handle potential errors during file processing and DB operations.
+    // --- End Placeholder Logic ---
+
+    // For now, just confirm the request was received and file is available
+    res.status(200).json({
+        message: 'Endpoint /api/products/upload-plain reached successfully.',
+        file: {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+        },
+        note: 'Logic for processing the Excel file needs to be implemented.'
+    });
+};
+
 module.exports = { 
   fetchProducts, 
   getCachedProducts, 
@@ -958,5 +989,6 @@ module.exports = {
   getCategories,
   toggleProductDiscontinuedStatus,
   getOptionalProductsFromBody,
-  getProductSpecifications
+  getProductSpecifications,
+  uploadBulkProductsPlain
 };
