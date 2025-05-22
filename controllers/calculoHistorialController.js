@@ -137,20 +137,49 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
             type: 'pdf',
             quality: '100',
             renderDelay: 1000, // Add a small delay to ensure content is rendered
-            script: '/app/node_modules/html-pdf/lib/scripts/pdf_a4_portrait.js'
+            script: '/app/node_modules/html-pdf/lib/scripts/pdf_a4_portrait.js',
+            filename: `${process.env.TMPDIR || '/app/tmp'}/config_${numeroSecuencialConfig}.pdf`
         };
 
         // Wrap PDF generation in a Promise for better error handling
         const generatePdf = () => {
             return new Promise((resolve, reject) => {
-                pdf.create(htmlParaPdf, opcionesPdf).toBuffer((err, buffer) => {
-                    if (err) {
-                        console.error('Error al generar el PDF:', err);
-                        reject(err);
-                        return;
-                    }
-                    resolve(buffer);
-                });
+                try {
+                    pdf.create(htmlParaPdf, opcionesPdf).toFile(opcionesPdf.filename, (err, res) => {
+                        if (err) {
+                            console.error('Error al generar el PDF:', err);
+                            reject(err);
+                            return;
+                        }
+                        
+                        if (!res || !res.filename) {
+                            console.error('Error: No se pudo generar el archivo PDF');
+                            reject(new Error('No se pudo generar el archivo PDF'));
+                            return;
+                        }
+
+                        // Read the generated file
+                        require('fs').readFile(res.filename, (err, buffer) => {
+                            if (err) {
+                                console.error('Error al leer el archivo PDF:', err);
+                                reject(err);
+                                return;
+                            }
+
+                            // Clean up the temporary file
+                            require('fs').unlink(res.filename, (unlinkErr) => {
+                                if (unlinkErr) {
+                                    console.warn('Advertencia: No se pudo eliminar el archivo temporal:', unlinkErr);
+                                }
+                            });
+
+                            resolve(buffer);
+                        });
+                    });
+                } catch (error) {
+                    console.error('Error inesperado en la generación del PDF:', error);
+                    reject(error);
+                }
             });
         };
 
@@ -158,6 +187,7 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
             console.log('Iniciando generación de PDF...');
             console.log('Directorio temporal:', process.env.TMPDIR);
             console.log('Ruta de PhantomJS:', process.env.PHANTOMJS_BIN);
+            console.log('Archivo temporal:', opcionesPdf.filename);
             
             const pdfBuffer = await generatePdf();
             console.log('PDF generado exitosamente');
