@@ -142,26 +142,19 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
             throw new Error(`No se pudo acceder al directorio temporal: ${error.message}`);
         }
 
+        // Configuración básica de PhantomJS
         const opcionesPdf = {
             format: 'A4',
-            border: {
-                top: '0.5in',
-                right: '0.5in',
-                bottom: '0.5in',
-                left: '0.5in'
-            },
+            border: '0.5in',
             phantomPath: process.env.PHANTOMJS_BIN || '/usr/local/bin/phantomjs',
             phantomArgs: [
                 '--local-url-access=false',
                 '--ignore-ssl-errors=true',
-                '--web-security=false'
+                '--web-security=false',
+                '--debug=true'
             ],
-            timeout: 30000, // 30 seconds timeout
+            timeout: 60000, // 60 seconds timeout
             directory: tmpDir,
-            type: 'pdf',
-            quality: '100',
-            renderDelay: 1000, // Add a small delay to ensure content is rendered
-            script: '/app/node_modules/html-pdf/lib/scripts/pdf_a4_portrait.js',
             filename: tmpFile
         };
 
@@ -170,11 +163,20 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
             return new Promise((resolve, reject) => {
                 try {
                     console.log('Iniciando creación del PDF con PhantomJS...');
+                    console.log('Opciones de configuración:', JSON.stringify(opcionesPdf, null, 2));
+                    
+                    // Verificar que PhantomJS existe
+                    if (!fs.existsSync(opcionesPdf.phantomPath)) {
+                        throw new Error(`PhantomJS no encontrado en: ${opcionesPdf.phantomPath}`);
+                    }
+                    console.log('PhantomJS encontrado en:', opcionesPdf.phantomPath);
+
+                    // Crear el PDF
                     const pdfInstance = pdf.create(htmlParaPdf, opcionesPdf);
                     
                     pdfInstance.toFile(tmpFile, (err, res) => {
                         if (err) {
-                            console.error('Error al generar el PDF:', err);
+                            console.error('Error detallado al generar el PDF:', err);
                             reject(err);
                             return;
                         }
@@ -186,6 +188,7 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
                         }
 
                         console.log('PDF generado exitosamente en:', res.filename);
+                        console.log('Tamaño del archivo:', fs.statSync(res.filename).size, 'bytes');
 
                         // Read the generated file
                         fs.readFile(res.filename, (err, buffer) => {
@@ -207,6 +210,12 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
                             resolve(buffer);
                         });
                     });
+
+                    // Agregar manejador de eventos para errores de PhantomJS
+                    pdfInstance.on('error', (err) => {
+                        console.error('Error de PhantomJS:', err);
+                    });
+
                 } catch (error) {
                     console.error('Error inesperado en la generación del PDF:', error);
                     reject(error);
