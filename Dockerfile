@@ -27,6 +27,27 @@ WORKDIR /app
 
 ENV HOST=0.0.0.0 
 
+# Install system dependencies required for PhantomJS
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    fontconfig \
+    ttf-dejavu \
+    ttf-liberation \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    font-noto \
+    font-noto-cjk
+
+# Set PhantomJS environment variables
+ENV PHANTOMJS_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PHANTOMJS_BIN=/usr/bin/phantomjs
+
 # Copy package.json and package-lock.json to the container
 COPY package*.json ./
 
