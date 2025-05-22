@@ -938,6 +938,26 @@ const getProductSpecifications = asyncHandler(async (req, res) => {
     });
 });
 
+// Helper function to get value from cell, handling potential nulls and converting to string
+const getSafeCellValue = (row, header, defaultValue = null) => {
+    const value = row[header];
+    if (value === undefined || value === null) {
+        return defaultValue;
+    }
+    // Attempt to return the value as is if not a number (to preserve original string format like "1.6 [m]")
+    // Otherwise, convert to string to avoid issues with different data types
+    if (typeof value === 'number') return value;
+    return String(value).trim();
+};
+
+// Helper to parse numbers, handling potential units like [kg], [m], [mm], [L], [HP], [m³/hr], [dB]
+const parseNumberValue = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const strValue = String(value).replace(/,/g, '.').replace(/[^0-9.-]/g, ''); // Remove non-numeric except decimal and sign
+    const number = parseFloat(strValue);
+    return isNaN(number) ? null : number;
+};
+
 // @desc    Upload bulk products from a plain Excel template
 // @route   POST /api/products/upload-plain
 // @access  Private/Admin (assuming)
@@ -950,23 +970,146 @@ const uploadBulkProductsPlain = async (req, res) => {
 
     console.log(`[Bulk Upload Plain] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
 
-    // --- Placeholder Logic ---
-    // TODO: Implement the actual logic to read the plain Excel file,
-    // parse the data, validate it, and save/update products in the database.
-    // You can use 'xlsx' library here to read req.file.buffer.
-    // Remember to handle potential errors during file processing and DB operations.
-    // --- End Placeholder Logic ---
+    try {
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
 
-    // For now, just confirm the request was received and file is available
-    res.status(200).json({
-        message: 'Endpoint /api/products/upload-plain reached successfully.',
-        file: {
-            originalname: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size
-        },
-        note: 'Logic for processing the Excel file needs to be implemented.'
-    });
+        // Convert sheet to array of JSON objects, using the first row as headers
+        // header: 1 means the first row is the header
+        // raw: false attempts to preserve rich text formatting, true gives raw values
+        // defval: null assigns null to empty cells
+        const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: null });
+
+        if (jsonData.length < 2) { // Need at least a header row and one data row
+            return res.status(400).json({ message: 'El archivo Excel está vacío o no tiene datos después de la cabecera.' });
+        }
+
+        // Assuming the first row (index 0 after header:1) contains the actual headers
+        // No, with header:1, jsonData[0] is the first DATA row. The headers are the keys.
+        // Let's re-read without header:1 to get headers as first row
+        const dataAoA = xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: null });
+
+         if (dataAoA.length < 2) { // Need at least a header row and one data row
+            return res.status(400).json({ message: 'El archivo Excel está vacío o no tiene datos después de la cabecera.' });
+        }
+
+        const headers = dataAoA[0]; // Assuming the first array is headers
+        const dataRows = dataAoA.slice(1); // Remaining arrays are data rows
+
+        if (dataRows.length === 0) {
+             return res.status(400).json({ message: 'El archivo Excel no contiene filas de datos después de la cabecera.' });
+        }
+
+        const operations = [];
+        const results = {
+            processed: 0,
+            created: 0,
+            updated: 0,
+            errors: []
+        };
+
+        console.log(`[Bulk Upload Plain] Found ${dataRows.length} data rows.`);
+
+        for (const row of dataRows) {
+            results.processed++;
+
+            // Map headers to column index
+            const headerMap = {};
+            headers.forEach((h, i) => { if (h) headerMap[String(h).toLowerCase().trim()] = i; });
+
+            const codigoProducto = getSafeCellValue(row, headerMap['codigo_producto']);
+
+            if (!codigoProducto) {
+                results.errors.push({ row: results.processed + 1, message: 'Fila omitida: código de producto vacío.' });
+                continue;
+            }
+
+            // Basic mapping from columns to schema fields
+            const productData = {
+                Codigo_Producto: codigoProducto,
+                caracteristicas: {
+                    nombre_del_producto: getSafeCellValue(row, headerMap['nombre_producto']),
+                    modelo: getSafeCellValue(row, headerMap['modelo']),
+                    // descontinuado: getSafeCellValue(row, headerMap['descontinuado']) === 'TRUE', // Assuming 'TRUE'/'FALSE' or similar
+                     descontinuado: getSafeCellValue(row, headerMap['descontinuado'])?.toLowerCase() === 'true',
+                },
+                 descripcion: getSafeCellValue(row, headerMap['descripcion']),
+                // equipo u opcional, producto, fecha_cotizacion, costo fabrica, largo_m, ancho_mm, alto_mm, peso_kg
+                producto: getSafeCellValue(row, headerMap['producto']),
+                 tipo: getSafeCellValue(row, headerMap['equipo u opcional'])?.toLowerCase() === 'opcional' ? 'opcional' : 'equipo', // Map based on value
+                
+                 datos_contables: {
+                     fecha_cotizacion: getSafeCellValue(row, headerMap['fecha_cotizacion']), // Keep as string if it's Year
+                     costo_fabrica: parseNumberValue(getSafeCellValue(row, headerMap['costo fabrica'])),
+                     divisa_costo: 'EUR' // Assuming default divisa or add column
+                 },
+
+                dimensiones: {
+                    largo_mm: parseNumberValue(getSafeCellValue(row, headerMap['largo_m'])) * 1000, // Convert m to mm
+                    ancho_mm: parseNumberValue(getSafeCellValue(row, headerMap['ancho_mm'])),
+                    alto_mm: parseNumberValue(getSafeCellValue(row, headerMap['alto_mm'])),
+                },
+                 peso_kg: parseNumberValue(getSafeCellValue(row, headerMap['peso_kg'])),
+                 es_opcional: getSafeCellValue(row, headerMap['equipo u opcional'])?.toLowerCase() === 'opcional',
+
+                // TODO: Add more fields based on your full template, e.g.,
+                // especificaciones_tecnicas: { ... mapping for specs ... }
+                // Ensure you handle nested objects correctly.
+            };
+
+             // Clean up empty/null nested objects to avoid saving empty objects
+            if (productData.caracteristicas && Object.keys(productData.caracteristicas).every(key => productData.caracteristicas[key] === null || productData.caracteristicas[key] === undefined)) delete productData.caracteristicas;
+             if (productData.datos_contables && Object.keys(productData.datos_contables).every(key => productData.datos_contables[key] === null || productData.datos_contables[key] === undefined)) delete productData.datos_contables;
+             if (productData.dimensiones && Object.keys(productData.dimensiones).every(key => productData.dimensiones[key] === null || productData.dimensiones[key] === undefined)) delete productData.dimensiones;
+
+            // Use upsert: true to create if not exists, update if exists
+            operations.push({
+                updateOne: {
+                    filter: { Codigo_Producto: codigoProducto },
+                    update: { $set: productData },
+                    upsert: true
+                }
+            });
+        }
+
+        if (operations.length > 0) {
+            const bulkWriteResult = await Producto.bulkWrite(operations, { ordered: false });
+            results.created = bulkWriteResult.upsertedCount || 0;
+            results.updated = bulkWriteResult.modifiedCount || 0;
+
+             // Handle write errors if any
+             if (bulkWriteResult.hasWriteErrors()) {
+                 bulkWriteResult.getWriteErrors().forEach(writeError => {
+                     const code = writeError.err.op?.filter?.Codigo_Producto || writeError.err.op?.$set?.Codigo_Producto || 'Desconocido';
+                     results.errors.push({ 
+                         row: 'N/A', // Cannot easily map back to original row number in bulkWrite errors without extra tracking
+                         codigo_producto: code,
+                         message: `Error de escritura en DB: ${writeError.errmsg}`,
+                         details: writeError.err
+                     });
+                 });
+             }
+
+        } else {
+             results.message = 'No se encontraron datos válidos para procesar.';
+        }
+
+        res.status(200).json({
+            message: 'Procesamiento de carga plana completado.',
+            summary: results,
+        });
+
+    } catch (error) {
+        console.error('[Bulk Upload Plain] Error processing file:', error);
+        if (error.message && (error.message.includes("Cannot find zip comment") || error.message.includes("Corrupted zip"))) {
+             return res.status(400).json({ message: 'El archivo subido no parece ser un archivo Excel válido o está corrupto.', error: error.message });
+        }
+        res.status(500).json({
+            message: 'Error interno del servidor al procesar el archivo.',
+            error: error.message,
+        });
+    }
 };
 
 module.exports = { 
