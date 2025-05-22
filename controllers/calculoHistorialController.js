@@ -2,13 +2,7 @@ const asyncHandler = require('express-async-handler');
 const CalculoHistorial = require('../models/CalculoHistorial');
 const Producto = require('../models/Producto');
 const ContadorConfiguracion = require('../models/ContadorConfiguracion');
-const pdf = require('html-pdf');
-
-// Configuración global de html-pdf
-pdf.config = {
-    phantomPath: process.env.PHANTOMJS_BIN || '/usr/bin/phantomjs',
-    phantomArgs: ['--local-url-access=false']
-};
+const puppeteer = require('puppeteer');
 
 // Función helper para obtener el siguiente número de configuración
 async function obtenerSiguienteNumeroConfiguracion(nombreContador = 'calculoHistorialCounter') {
@@ -124,53 +118,67 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
         });
 
         // 3. Generar HTML para el PDF
-        // Pasamos nuevoHistorial completo, ya que contiene todos los datos de la cotización
         const htmlParaPdf = generarHtmlParaPdf({
-            calculoHistorialCompleto: nuevoHistorial, // Pasar el documento guardado
-            // itemsParaCotizar y resultadosCalculados ya están dentro de nuevoHistorial.itemsParaCotizar y nuevoHistorial.resultadosCalculados
-            // pero los mantenemos por si la función generarHtmlParaPdf los usa directamente de esta forma por ahora.
-            itemsParaCotizar: nuevoHistorial.itemsParaCotizar, // Ya tienen la descripción
+            calculoHistorialCompleto: nuevoHistorial,
+            itemsParaCotizar: nuevoHistorial.itemsParaCotizar,
             resultadosCalculados: nuevoHistorial.resultadosCalculados,
-            nombrePerfil: nuevoHistorial.nombrePerfil, // Tomar del objeto guardado para consistencia
+            nombrePerfil: nuevoHistorial.nombrePerfil,
             anoEnCursoGlobal: nuevoHistorial.anoEnCursoGlobal
         });
 
-        const opcionesPdf = {
-            format: 'A4',
-            orientation: "portrait",
-            border: {
-                top: "0.5in",
-                right: "0.5in",
-                bottom: "0.5in",
-                left: "0.5in"
-            },
-            timeout: 30000,
-            phantomPath: process.env.PHANTOMJS_BIN || '/usr/bin/phantomjs',
-            phantomArgs: ['--local-url-access=false']
-        };
+        // 4. Generar PDF usando Puppeteer
+        let browser;
+        try {
+            browser = await puppeteer.launch({
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu'
+                ],
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
+                headless: 'new'
+            });
+            
+            const page = await browser.newPage();
+            await page.setContent(htmlParaPdf, {
+                waitUntil: 'networkidle0'
+            });
 
-        pdf.create(htmlParaPdf, opcionesPdf).toBuffer((err, buffer) => {
-            if (err) {
-                console.error('Error al generar PDF:', err);
-                // No enviar res.status(500) si ya se envió uno antes por error de validación, etc.
-                if (!res.headersSent) {
-                    return res.status(500).send('Error al generar el archivo PDF.');
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: {
+                    top: '0.5in',
+                    right: '0.5in',
+                    bottom: '0.5in',
+                    left: '0.5in'
                 }
-                return;
-            }
+            });
 
             res.header('Content-Type', 'application/pdf');
-            // Usar el número secuencial para el nombre del archivo y mostrar en línea
             res.header('Content-Disposition', `inline; filename="Configuracion_${numeroSecuencialConfig}.pdf"`);
             res.header('X-Calculo-ID', nuevoHistorial._id.toString());
             res.header('X-Numero-Cotizacion', numeroSecuencialConfig.toString());
-            res.send(buffer);
-        });
+            res.send(pdfBuffer);
+
+        } catch (error) {
+            console.error('Error al generar PDF con Puppeteer:', error);
+            throw error;
+        } finally {
+            if (browser) {
+                await browser.close();
+            }
+        }
 
     } catch (error) {
-        console.error('Error en guardarYExportarCalculos (antes de PDF):', error);
+        console.error('Error en guardarYExportarCalculos:', error);
         if (!res.headersSent) {
-            res.status(500).json({ message: error.message || 'Error interno del servidor al procesar la solicitud.' });
+            res.status(500).json({ 
+                message: 'Error interno del servidor al procesar la solicitud.',
+                error: error.message 
+            });
         }
     }
 });
