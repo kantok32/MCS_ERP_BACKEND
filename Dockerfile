@@ -44,20 +44,20 @@ RUN apk add --no-cache \
     font-noto \
     font-noto-cjk
 
+# Copy package.json and package-lock.json to the container
+COPY package*.json ./
+
+# Install dependencies and PhantomJS
+RUN npm install --production && \
+    npm install phantomjs-prebuilt && \
+    ln -s /app/node_modules/phantomjs-prebuilt/lib/phantom/bin/phantomjs /usr/bin/phantomjs
+
 # Set PhantomJS environment variables
 ENV PHANTOMJS_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PHANTOMJS_BIN=/usr/bin/phantomjs
 
-# Copy package.json and package-lock.json to the container
-COPY package*.json ./
-
-# Remove existing node_modules and install project dependencies
-RUN npm install --production
-
 # Copy the rest of the application source code to the container
 COPY . .
-
-
 
 # Expose the port your Nest.js application is listening on
 EXPOSE 5001
