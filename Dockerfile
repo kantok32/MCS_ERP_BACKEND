@@ -45,9 +45,12 @@ RUN apk add --no-cache \
     zlib \
     zlib-dev
 
+# Install PhantomJS globally
+RUN npm install -g phantomjs-prebuilt
+
 # Set PhantomJS environment variables
 ENV PHANTOMJS_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PHANTOMJS_BIN=/usr/bin/phantomjs
+ENV PHANTOMJS_BIN=/usr/local/bin/phantomjs
 
 # Copy package.json and package-lock.json to the container
 COPY package*.json ./

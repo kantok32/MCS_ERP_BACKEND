@@ -130,7 +130,7 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
                 bottom: '0.5in',
                 left: '0.5in'
             },
-            phantomPath: process.env.PHANTOMJS_BIN || '/usr/bin/phantomjs',
+            phantomPath: process.env.PHANTOMJS_BIN || '/usr/local/bin/phantomjs',
             phantomArgs: ['--local-url-access=false']
         };
 
