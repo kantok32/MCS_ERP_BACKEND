@@ -677,17 +677,68 @@ const guardarCalculoHistorial = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Obtener todos los historiales de cálculo guardados
+// @desc    Obtener todos los historiales de cálculo guardados con paginación y búsqueda
 // @route   GET /api/calculo-historial
 // @access  Private (o según se defina)
 const getAllCalculosHistorial = asyncHandler(async (req, res) => {
   try {
-    // Por defecto, ordenar por fecha de creación descendente (más nuevos primero)
-    const historiales = await CalculoHistorial.find({}).sort({ createdAt: -1 });
-    res.status(200).json(historiales);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const searchTerm = req.query.search || '';
+    const sortBy = req.query.sortBy || 'createdAt';
+    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+
+    // Construir el filtro de búsqueda
+    const searchFilter = {};
+    if (searchTerm) {
+      searchFilter.$or = [
+        { 'clienteNombre': { $regex: searchTerm, $options: 'i' } },
+        { 'clienteRut': { $regex: searchTerm, $options: 'i' } },
+        { 'numeroConfiguracion': { $regex: searchTerm, $options: 'i' } },
+        { 'empresaQueCotiza': { $regex: searchTerm, $options: 'i' } },
+        { 'emisorNombre': { $regex: searchTerm, $options: 'i' } }
+      ];
+    }
+
+    // Calcular el total de documentos que coinciden con el filtro
+    const totalDocs = await CalculoHistorial.countDocuments(searchFilter);
+    const totalPages = Math.ceil(totalDocs / limit);
+    const skip = (page - 1) * limit;
+
+    // Obtener los documentos paginados y ordenados
+    const historiales = await CalculoHistorial.find(searchFilter)
+      .sort({ [sortBy]: sortOrder })
+      .skip(skip)
+      .limit(limit)
+      .select('-itemsParaCotizar -resultadosCalculados'); // Excluir campos pesados por defecto
+
+    // Construir la respuesta con metadatos de paginación
+    const response = {
+      data: historiales,
+      pagination: {
+        totalDocs,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+        nextPage: page < totalPages ? page + 1 : null,
+        prevPage: page > 1 ? page - 1 : null
+      },
+      search: {
+        term: searchTerm,
+        sortBy,
+        sortOrder: sortOrder === 1 ? 'asc' : 'desc'
+      }
+    };
+
+    res.status(200).json(response);
   } catch (error) {
-    console.error('Error al obtener todos los historiales de cálculo:', error);
-    res.status(500).json({ message: 'Error interno al obtener los historiales de cálculo.', error: error.message });
+    console.error('Error al obtener los historiales de cálculo:', error);
+    res.status(500).json({ 
+      message: 'Error interno al obtener los historiales de cálculo.', 
+      error: error.message 
+    });
   }
 });
 
@@ -706,14 +757,14 @@ const getCalculoHistorialById = asyncHandler(async (req, res) => {
     }
   } catch (error) {
     console.error(`Error al obtener el historial de cálculo por ID (${req.params.id}):`, error);
-    // Si el error es por un ID de formato inválido para ObjectId
     if (error.kind === 'ObjectId') {
-        res.status(400);
-        throw new Error('ID de historial de cálculo no válido.');
+      res.status(400);
+      throw new Error('ID de historial de cálculo no válido.');
     }
-    // Usar el status code que ya podría estar seteado (404) o default a 500
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-    res.status(statusCode).json({ message: error.message || 'Error interno al obtener el historial.' });
+    res.status(statusCode).json({ 
+      message: error.message || 'Error interno al obtener el historial.' 
+    });
   }
 });
 
