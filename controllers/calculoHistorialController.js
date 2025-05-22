@@ -133,17 +133,26 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
             phantomPath: process.env.PHANTOMJS_BIN || '/usr/local/bin/phantomjs',
             phantomArgs: ['--local-url-access=false'],
             timeout: 30000, // 30 seconds timeout
-            directory: process.env.TMPDIR || '/tmp/pdf',
+            directory: process.env.TMPDIR || '/app/tmp',
             type: 'pdf',
-            quality: '100'
+            quality: '100',
+            renderDelay: 1000, // Add a small delay to ensure content is rendered
+            script: '/app/node_modules/html-pdf/lib/scripts/pdf_a4_portrait.js'
         };
 
         // Wrap PDF generation in a Promise for better error handling
         const generatePdf = () => {
             return new Promise((resolve, reject) => {
-                pdf.create(htmlParaPdf, opcionesPdf).toBuffer((err, buffer) => {
+                const pdfInstance = pdf.create(htmlParaPdf, opcionesPdf);
+                
+                pdfInstance.on('error', (err) => {
+                    console.error('Error en la generación del PDF:', err);
+                    reject(err);
+                });
+
+                pdfInstance.toBuffer((err, buffer) => {
                     if (err) {
-                        console.error('Error al generar PDF:', err);
+                        console.error('Error al generar el buffer del PDF:', err);
                         reject(err);
                         return;
                     }
@@ -153,7 +162,12 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
         };
 
         try {
+            console.log('Iniciando generación de PDF...');
+            console.log('Directorio temporal:', process.env.TMPDIR);
+            console.log('Ruta de PhantomJS:', process.env.PHANTOMJS_BIN);
+            
             const pdfBuffer = await generatePdf();
+            console.log('PDF generado exitosamente');
             
             res.header('Content-Type', 'application/pdf');
             res.header('Content-Disposition', `inline; filename="Configuracion_${numeroSecuencialConfig}.pdf"`);

@@ -48,13 +48,15 @@ RUN apk add --no-cache \
 # Install PhantomJS globally
 RUN npm install -g phantomjs-prebuilt
 
-# Create temp directory for PDF generation
-RUN mkdir -p /tmp/pdf && chmod 777 /tmp/pdf
+# Create temp directory for PDF generation and set permissions
+RUN mkdir -p /app/tmp && \
+    chmod 777 /app/tmp && \
+    chown -R node:node /app/tmp
 
 # Set PhantomJS environment variables
 ENV PHANTOMJS_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PHANTOMJS_BIN=/usr/local/bin/phantomjs
-ENV TMPDIR=/tmp/pdf
+ENV TMPDIR=/app/tmp
 
 # Copy package.json and package-lock.json to the container
 COPY package*.json ./
@@ -64,6 +66,12 @@ RUN npm install
 
 # Copy the rest of the application source code to the container
 COPY . .
+
+# Set proper permissions for the application directory
+RUN chown -R node:node /app
+
+# Switch to non-root user
+USER node
 
 # Expose the port your Nest.js application is listening on
 EXPOSE 5001
