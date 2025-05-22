@@ -27,6 +27,16 @@
     "mongoose": "^8.15.0",
     "multer": "^1.4.5-lts.2",
     "node-fetch": "^2.7.0",
+    "phantomjs-prebuilt": "^2.1.16",
     "xlsx": "^0.18.5"
+  },
+  "config": {
+    "phantomjs_prebuilt": {
+      "path": "/usr/bin/phantomjs"
+    }
+  },
+  "env": {
+    "PHANTOMJS_SKIP_CHROMIUM_DOWNLOAD": "true",
+    "PHANTOMJS_BIN": "/usr/bin/phantomjs"
   }
 }

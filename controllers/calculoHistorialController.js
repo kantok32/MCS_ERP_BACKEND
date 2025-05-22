@@ -4,6 +4,12 @@ const Producto = require('../models/Producto');
 const ContadorConfiguracion = require('../models/ContadorConfiguracion');
 const pdf = require('html-pdf');
 
+// Configuración global de html-pdf
+pdf.config = {
+    phantomPath: process.env.PHANTOMJS_BIN || '/usr/bin/phantomjs',
+    phantomArgs: ['--local-url-access=false']
+};
+
 // Función helper para obtener el siguiente número de configuración
 async function obtenerSiguienteNumeroConfiguracion(nombreContador = 'calculoHistorialCounter') {
     const contador = await ContadorConfiguracion.findByIdAndUpdate(
@@ -130,17 +136,17 @@ const guardarYExportarCalculos = asyncHandler(async (req, res) => {
         });
 
         const opcionesPdf = {
-            format: 'A4', // o Letter, etc.
-            orientation: "portrait", // "portrait" or "landscape"
+            format: 'A4',
+            orientation: "portrait",
             border: {
                 top: "0.5in",
                 right: "0.5in",
                 bottom: "0.5in",
                 left: "0.5in"
             },
-            timeout: 30000, // Tiempo de espera para la generación del PDF
-            // Si tienes problemas con rutas locales (imágenes, fuentes) podrías necesitar 'base'
-            // base: `file:///${path.join(__dirname, '../public/')}` // Ejemplo si tienes assets locales
+            timeout: 30000,
+            phantomPath: process.env.PHANTOMJS_BIN || '/usr/bin/phantomjs',
+            phantomArgs: ['--local-url-access=false']
         };
 
         pdf.create(htmlParaPdf, opcionesPdf).toBuffer((err, buffer) => {
