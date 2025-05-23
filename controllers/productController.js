@@ -967,8 +967,8 @@ const uploadTechnicalSpecifications = async (req, res) => {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
 
-        // Convertir la hoja a un array de arrays para facilitar el acceso por fila/columna
-        const data = xlsx.utils.sheet_to_aoa(worksheet);
+        // Convertir la hoja a un array de arrays usando la función correcta
+        const data = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: null });
 
         if (data.length < 2 || data[0].length < 2) {
             return res.status(400).json({ 
