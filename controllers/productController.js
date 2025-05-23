@@ -940,7 +940,9 @@ const uploadBulkProductsMatrix = async (req, res) => {
 // @route   POST /api/products/upload-specifications
 // @access  Private/Admin (assuming)
 const uploadTechnicalSpecifications = async (req, res) => {
-    // ... implementation ...
+    // TODO: Implement logic for uploading technical specifications
+    console.log("uploadTechnicalSpecifications endpoint hit");
+    res.status(501).json({ success: false, message: "Endpoint not implemented yet." });
 };
 
 // @desc    Upload bulk products from a plain Excel template
