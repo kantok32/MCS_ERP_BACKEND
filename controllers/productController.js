@@ -941,13 +941,26 @@ const uploadBulkProductsMatrix = async (req, res) => {
 // @access  Private/Admin (assuming)
 const uploadTechnicalSpecifications = async (req, res) => {
     console.log('[Bulk Upload Specs] Request received for technical specifications update.');
+    
+    // Verificar si se subió un archivo
     if (!req.file) {
-        return res.status(400).json({ message: 'No se subió ningún archivo.' });
+        return res.status(400).json({ 
+            success: false, 
+            message: 'No se subió ningún archivo.' 
+        });
     }
 
     console.log(`[Bulk Upload Specs] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
 
     try {
+        // Verificar que el archivo sea un Excel válido
+        if (!req.file.mimetype.includes('excel') && !req.file.mimetype.includes('spreadsheet')) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El archivo debe ser un archivo Excel válido.' 
+            });
+        }
+
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
 
         // Asumir que los datos están en la primera hoja
@@ -958,101 +971,111 @@ const uploadTechnicalSpecifications = async (req, res) => {
         const data = xlsx.utils.sheet_to_aoa(worksheet);
 
         if (data.length < 2 || data[0].length < 2) {
-            return res.status(400).json({ success: false, message: 'El archivo no tiene el formato esperado (mínimo 2 filas y 2 columnas).' });
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El archivo no tiene el formato esperado (mínimo 2 filas y 2 columnas).' 
+            });
         }
 
-        // 3. Extraer códigos de producto (Fila 1, desde Columna B en adelante)
-        // El formato AoA es 0-indexado: Fila 1 es data[0], Columna B es index 1
+        // Extraer códigos de producto (Fila 1, desde Columna B en adelante)
         const productCodesRow = data[0];
-        // Extraer solo los códigos de producto válidos (no nulos o vacíos) desde el índice 1 en adelante
         const productCodes = productCodesRow.slice(1).filter(code => code !== undefined && code !== null && String(code).trim() !== '');
 
         if (productCodes.length === 0) {
-             return res.status(400).json({ success: false, message: 'No se encontraron códigos de producto válidos en la primera fila.' });
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No se encontraron códigos de producto válidos en la primera fila.' 
+            });
         }
 
-        // 4. Extraer nombres de especificaciones (Columna A, desde Fila 2 en adelante)
-        // Columna A es index 0, Fila 2 es index 1
+        // Extraer nombres de especificaciones (Columna A, desde Fila 2 en adelante)
         const specNamesColumn = data.slice(1).map(row => row[0]);
-         // Filtrar nombres de especificación válidos
         const specNames = specNamesColumn.filter(name => name !== undefined && name !== null && String(name).trim() !== '');
 
-         if (specNames.length === 0) {
-             return res.status(400).json({ success: false, message: 'No se encontraron nombres de especificaciones válidos en la primera columna (desde la segunda fila).' });
+        if (specNames.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No se encontraron nombres de especificaciones válidos en la primera columna (desde la segunda fila).' 
+            });
         }
 
         console.log(`Found ${productCodes.length} product codes and ${specNames.length} specification names.`);
 
         const results = [];
+        let hasErrors = false;
 
-        // 5. Procesar cada producto
+        // Procesar cada producto
         for (let i = 0; i < productCodes.length; i++) {
             const productCode = String(productCodes[i]).trim();
-            // La columna de datos para este producto es i + 1 (ya que los códigos empiezan en la Columna B, index 1)
             const productDataColumnIndex = i + 1;
 
-            // 6. Extraer especificaciones técnicas para el producto actual
+            // Extraer especificaciones técnicas para el producto actual
             const technicalSpecifications = {};
             for (let j = 0; j < specNames.length; j++) {
                 const specName = String(specNames[j]).trim();
-                // La fila de datos para esta especificación es j + 1 (ya que los nombres empiezan en la Fila 2, index 1)
                 const specDataRowIndex = j + 1;
 
-                // Obtener el valor de la especificación en la celda correspondiente
-                // Asegurarse de que la fila y columna existen en los datos
                 if (data[specDataRowIndex] && data[specDataRowIndex][productDataColumnIndex] !== undefined) {
-                     technicalSpecifications[specName] = data[specDataRowIndex][productDataColumnIndex];
+                    technicalSpecifications[specName] = data[specDataRowIndex][productDataColumnIndex];
                 } else {
-                    // Si la celda está vacía o fuera de rango, usar null o un valor por defecto si aplica
-                    technicalSpecifications[specName] = null; 
+                    technicalSpecifications[specName] = null;
                 }
             }
 
-            console.log(`Processing product code: ${productCode} with specs:`, technicalSpecifications);
-
-            // 7. Buscar el producto en la base de datos y actualizar sus especificaciones
             try {
-                // Asumimos que Codigo_Fabricante en el archivo mapea a Codigo_Producto en la DB
-                // Usamos la función updateProductInDB existente (si es adecuada para actualizar un subdocumento/campo específico)
-                // Nota: updateProductInDB actualmente busca por Codigo_Producto
-
                 const updatedProduct = await updateProductInDB(productCode, { 
                     especificaciones_tecnicas: technicalSpecifications 
                 });
 
                 if (updatedProduct) {
-                    results.push({ code: productCode, status: 'success', message: 'Especificaciones actualizadas.' });
-                    console.log(`Successfully updated specs for product ${productCode}`);
-                     // Opcional: Refrescar caché si es necesario después de cada actualización
-                    // await initializeProductCache(); // Esto puede ser ineficiente para muchos productos
-                    // O mejor: actualizar el producto específico en el caché si se maneja en memoria
+                    results.push({ 
+                        code: productCode, 
+                        status: 'success', 
+                        message: 'Especificaciones actualizadas.' 
+                    });
                 } else {
-                    results.push({ code: productCode, status: 'warning', message: 'Producto no encontrado en la base de datos.' });
-                     console.warn(`Product ${productCode} not found for update.`);
+                    hasErrors = true;
+                    results.push({ 
+                        code: productCode, 
+                        status: 'warning', 
+                        message: 'Producto no encontrado en la base de datos.' 
+                    });
                 }
-
             } catch (dbError) {
+                hasErrors = true;
                 console.error(`Error updating product ${productCode} in DB:`, dbError);
-                results.push({ code: productCode, status: 'error', message: `Error al actualizar en DB: ${dbError.message}` });
+                results.push({ 
+                    code: productCode, 
+                    status: 'error', 
+                    message: `Error al actualizar en DB: ${dbError.message}` 
+                });
             }
         }
 
-        // 8. Refrescar el caché global después de procesar todos los productos
-        // Esto es más eficiente que refrescar en cada iteración si se usa caché en memoria
+        // Refrescar el caché global después de procesar todos los productos
         try {
-             await initializeProductCache();
-             console.log('Cache refreshed after bulk specification update.');
+            await initializeProductCache();
+            console.log('Cache refreshed after bulk specification update.');
         } catch (cacheError) {
-             console.error('Error refreshing cache after bulk update:', cacheError);
-             // Continuar aunque falle el refresh del cache, la DB ya se actualizó
+            console.error('Error refreshing cache after bulk update:', cacheError);
+            // No consideramos esto un error fatal
         }
 
-        // 9. Enviar respuesta resumen
-        res.status(200).json({ success: true, message: 'Procesamiento de archivo de especificaciones completado.', results });
+        // Enviar respuesta resumen
+        const status = hasErrors ? 207 : 200;
+        res.status(status).json({ 
+            success: true, 
+            message: 'Procesamiento de archivo de especificaciones completado.', 
+            results 
+        });
 
     } catch (error) {
         console.error('Error processing specifications file:', error);
-        res.status(500).json({ success: false, message: 'Error interno del servidor al procesar el archivo.', error: error.message });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor al procesar el archivo.', 
+            error: error.message 
+        });
     }
 };
 
