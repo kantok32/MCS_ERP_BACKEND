@@ -49,7 +49,10 @@ const initializeServer = async () => {
 
     // Configuración de CORS
     const allowedOriginsEnv = process.env.CORS_ALLOWED_ORIGINS;
-    const allowedOrigins = allowedOriginsEnv ? allowedOriginsEnv.split(',') : [];
+    const allowedOrigins = allowedOriginsEnv ? allowedOriginsEnv.split(',') : [
+      'https://mcs-erp-frontend.web.app', // Frontend en Firebase Hosting
+      'http://localhost:5173',            // Desarrollo local
+    ];
 
     if (allowedOrigins.length > 0) {
       app.use(cors({
@@ -64,7 +67,6 @@ const initializeServer = async () => {
       }));
     } else {
       // Si no se especifican orígenes, permitir todos (comportamiento por defecto de cors())
-      // Considerar si esto es adecuado para producción o si se debe tener una lista por defecto más restrictiva.
       app.use(cors()); 
       console.warn('[Server] CORS está configurado para permitir todos los orígenes. Define CORS_ALLOWED_ORIGINS en tu .env para producción.');
     }
