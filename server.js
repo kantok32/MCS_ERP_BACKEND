@@ -49,7 +49,10 @@ const initializeServer = async () => {
 
     // Configuración de CORS
     const allowedOriginsEnv = process.env.CORS_ALLOWED_ORIGINS;
-    const allowedOrigins = allowedOriginsEnv ? allowedOriginsEnv.split(',') : [];
+    const allowedOrigins = allowedOriginsEnv ? allowedOriginsEnv.split(',') : [
+      'https://mcs-erp-frontend.web.app', // Frontend en Firebase Hosting
+      'http://localhost:5173',            // Desarrollo local
+    ];
 
     if (allowedOrigins.length > 0) {
       app.use(cors({
