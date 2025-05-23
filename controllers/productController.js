@@ -940,19 +940,15 @@ const uploadBulkProductsMatrix = async (req, res) => {
 // @route   POST /api/products/upload-specifications
 // @access  Private/Admin (assuming)
 const uploadTechnicalSpecifications = async (req, res) => {
-    console.log("uploadTechnicalSpecifications endpoint hit");
-
-    // 1. Verificar si se subió un archivo
-    if (!req.files || Object.keys(req.files).length === 0 || !req.files.file) {
-        return res.status(400).json({ success: false, message: 'No se ha subido ningún archivo.' });
+    console.log('[Bulk Upload Specs] Request received for technical specifications update.');
+    if (!req.file) {
+        return res.status(400).json({ message: 'No se subió ningún archivo.' });
     }
 
-    const file = req.files.file; // Asumiendo que 'file' es el nombre del campo en el formulario
+    console.log(`[Bulk Upload Specs] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
 
     try {
-        // 2. Leer el archivo
-        // xlsx.read puede leer directamente el buffer
-        const workbook = xlsx.read(file.data, { type: 'buffer' });
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
 
         // Asumir que los datos están en la primera hoja
         const sheetName = workbook.SheetNames[0];

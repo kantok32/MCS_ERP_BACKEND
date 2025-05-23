@@ -24,7 +24,6 @@ const { port } = require('./config/env');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 const calculoHistorialRoutes = require('./routes/calculoHistorialRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
-const fileUpload = require('express-fileupload');
 
 dotenv.config();
 
@@ -72,7 +71,6 @@ const initializeServer = async () => {
 
     app.use(express.json({ limit: '50mb' }));
     app.use(express.urlencoded({ limit: '50mb', extended: true }));
-    app.use(fileUpload());
     
     // Configuración de rutas
     app.use('/api/users', userRoutes);

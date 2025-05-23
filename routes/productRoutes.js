@@ -75,6 +75,6 @@ router.post('/upload-plain', upload.single('archivoExcelPlain'), productControll
 // router.post('/upload-matrix', upload.single('archivoExcelMatrix'), productController.uploadBulkProductsMatrix); // Commented out 
 
 // Nueva ruta para actualizar especificaciones técnicas (Formato Matricial de Especificaciones)
-router.post('/upload-specifications', upload.single('archivoEspecificaciones'), productController.uploadTechnicalSpecifications); 
+router.post('/upload-specifications', upload.single('file'), productController.uploadTechnicalSpecifications); 
 
 module.exports = router;
