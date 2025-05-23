@@ -48,28 +48,20 @@ const initializeServer = async () => {
     const app = express();
 
     // Configuración de CORS
-    const allowedOriginsEnv = process.env.CORS_ALLOWED_ORIGINS;
-    const allowedOrigins = allowedOriginsEnv ? allowedOriginsEnv.split(',') : [
-      'https://mcs-erp-frontend.web.app', // Frontend en Firebase Hosting
-      'http://localhost:5173',            // Desarrollo local
+    const allowedOrigins = [
+      'https://mcs-erp-frontend.web.app', // Producción
+      'http://localhost:5173',           // Desarrollo local
     ];
 
-    if (allowedOrigins.length > 0) {
-      app.use(cors({
-        origin: function (origin, callback) {
-          // Permite solicitudes sin 'origin' (como mobile apps o curl requests) o si el origen está en la lista
-          if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-          } else {
-            callback(new Error('Not allowed by CORS'));
-          }
+    app.use(cors({
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
         }
-      }));
-    } else {
-      // Si no se especifican orígenes, permitir todos (comportamiento por defecto de cors())
-      app.use(cors()); 
-      console.warn('[Server] CORS está configurado para permitir todos los orígenes. Define CORS_ALLOWED_ORIGINS en tu .env para producción.');
-    }
+      }
+    }));
 
     app.use(express.json({ limit: '50mb' }));
     app.use(express.urlencoded({ limit: '50mb', extended: true }));
