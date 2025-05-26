@@ -416,8 +416,9 @@ const getProductDetail = async (req, res) => {
 // @access  Public
 const getOptionalProducts = async (req, res) => {
   try {
-    const { codigo: codigoPrincipal } = req.query;
+    const { codigo: codigoPrincipal, modelo: modeloPrincipal, categoria } = req.query; // Obtener todos los parámetros necesarios
 
+    // Validar parámetros requeridos
     if (!codigoPrincipal) {
       return res.status(400).json({
         success: false,
@@ -425,132 +426,80 @@ const getOptionalProducts = async (req, res) => {
         message: 'Se requiere el código del producto principal (param: codigo)'
       });
     }
-
-    const productoPrincipal = await Producto.findOne({ Codigo_Producto: codigoPrincipal }).lean();
-
-    if (!productoPrincipal) {
-      return res.status(404).json({
-        success: false,
-        error: 'No encontrado',
-        message: `Producto principal con código ${codigoPrincipal} no encontrado.`
-      });
-    }
-
-    // Validaciones de datos del producto principal
-    // Priorizar el parámetro 'modelo' de la query string si está presente
-    const modeloPrincipalFromQuery = req.query.modelo;
-    let modeloPrincipal = null;
-
-    if (modeloPrincipalFromQuery) {
-        console.log('[getOptionalProducts] Using model from query string:', modeloPrincipalFromQuery);
-        modeloPrincipal = modeloPrincipalFromQuery;
-    } else {
-        // Si no hay parámetro en la query, intentar obtener del producto principal (cache/DB)
-        console.log('[getOptionalProducts] Model not in query string, attempting to get from product principal...');
-        modeloPrincipal = productoPrincipal.caracteristicas?.modelo || productoPrincipal.modelo;
-    }
-
+    // Validar que el modelo esté presente
     if (!modeloPrincipal) {
         return res.status(400).json({
             success: false,
-            error: 'Datos incompletos o parámetro modelo faltante',
-            message: 'Se requiere el campo modelo del producto principal (en la BD o como parámetro en la URL).'
+            error: 'Parámetro inválido',
+            message: 'Se requiere el modelo del producto principal (param: modelo)'
         });
     }
 
-    // Ahora usamos la variable modeloPrincipal para el resto de la lógica
-    const modeloPrincipalString = String(modeloPrincipal).toLowerCase();
+    // No necesitamos buscar el producto principal en la base de datos a menos que necesitemos sus
+    // detalles para la respuesta. La lógica requerida solo usa los parámetros de la query.
+    // Mantendremos la búsqueda por ahora por si se usa más adelante o para validación contextual.
+    const productoPrincipal = await Producto.findOne({ Codigo_Producto: codigoPrincipal }).lean();
 
-    // Validar que el tipo de producto (productoPrincipal.producto) esté definido
-    if (!productoPrincipal.producto) {
-        return res.status(400).json({
-            success: false,
-            error: 'Datos incompletos en producto principal',
-            message: 'El producto principal no tiene el campo "producto" definido.'
-        });
+    if (!productoPrincipal) {
+      // Si el producto principal no existe, no hay opcionales asociados a él en teoría.
+      // Podríamos devolver un 404 para el principal, o un 200 con lista vacía de opcionales.
+      // De acuerdo a la instrucción "Si no se encuentran opcionales... respuesta debe indicar éxito... con array products vacío",
+      // asumiremos que si el principal no existe, simplemente no hay opcionales asociados.
+      console.log(`[getOptionalProducts] Producto principal con código ${codigoPrincipal} no encontrado.`);
+       return res.status(200).json({
+          success: true,
+          data: {
+            total: 0,
+            products: [] // Lista vacía porque el principal no existe
+          },
+          timestamp: new Date().toISOString()
+       });
     }
 
-    const tipoChipeadoraPrincipal = productoPrincipal.producto.toLowerCase(); // Ej: "chipeadora motor", "chipeadora pto"
+    console.log(`[getOptionalProducts] Buscando opcionales para modelo: ${modeloPrincipal}, principal: ${codigoPrincipal}`);
 
-    // Paso 1: Búsqueda inicial de candidatos
-    const candidatosOpcionales = await Producto.find({
-      Codigo_Producto: { $ne: codigoPrincipal },
-      $or: [
-        { tipo: { $regex: /^opcional$/i } },
-        { 'caracteristicas.nombre_del_producto': { $regex: 'opcional', $options: 'i' } }
-      ]
-    }).lean();
+    // Construir la consulta para encontrar opcionales
+    const findQuery = {
+        Codigo_Producto: { $ne: codigoPrincipal }, // Excluir el producto principal
+        categoria: 'opcional', // Filtrar por productos marcados como opcionales por categoría
+        // Filtrar por coincidencia EXACTA del campo asignado_a_codigo_principal con el modelo principal
+        asignado_a_codigo_principal: modeloPrincipal
+        // Si se necesitara insensibilidad a mayúsculas/minúsculas:
+        // asignado_a_codigo_principal: { $regex: new RegExp('^' + modeloPrincipal + '$', 'i') }
+    };
 
-    console.log(`Encontrados ${candidatosOpcionales.length} productos candidatos iniciales (tipo:"opcional" o nombre contiene "opcional").`);
+    // Opcional: usar la categoría del principal para un filtro adicional si es necesario
+    // if (categoria) {
+    //     findQuery.someOtherFieldThatMatchesCategoria = categoria; // Reemplazar someOtherFieldThatMatchesCategoria
+    // }
 
-    // Paso 2 y 3: Filtrar por coincidencia de modelo Y tipo de chipeadora
-    const opcionalesFiltrados = candidatosOpcionales.filter(opcional => {
-      // Validaciones de datos del opcional
-      if (!opcional.caracteristicas || !opcional.caracteristicas.modelo) {
-        console.log(`Opcional ${opcional.Codigo_Producto} descartado por no tener caracteristicas.modelo.`);
-        return false;
-      }
-      if (!opcional.producto) { // Necesario para el nuevo filtro
-        console.log(`Opcional ${opcional.Codigo_Producto} descartado por no tener el campo "producto".`);
-        return false;
-      }
+    const opcionalesFiltrados = await Producto.find(findQuery).lean();
 
-      const modeloOpcionalString = opcional.caracteristicas.modelo.toLowerCase();
-      const tipoChipeadoraOpcional = opcional.producto.toLowerCase();
+    console.log(`[getOptionalProducts] Encontrados ${opcionalesFiltrados.length} opcionales que coinciden con la consulta.`);
 
-      // Condición de Modelo
-      const coincideModelo = modeloPrincipalString.includes(modeloOpcionalString);
-      if (!coincideModelo) {
-        console.log(`Opcional ${opcional.Codigo_Producto} (${opcional.caracteristicas.nombre_del_producto || opcional.nombre_del_producto || 'Nombre no disponible'}) DESCARTADO. Modelo principal "${modeloPrincipalString}" no contiene modelo opcional "${modeloOpcionalString}".`);
-        return false;
-      }
-
-      // NUEVA Condición: Tipo de Chipeadora (Motor vs PTO)
-      const esPrincipalMotor = tipoChipeadoraPrincipal.includes("motor");
-      const esPrincipalPTO = tipoChipeadoraPrincipal.includes("pto");
-      
-      const esOpcionalMotor = tipoChipeadoraOpcional.includes("motor");
-      const esOpcionalPTO = tipoChipeadoraOpcional.includes("pto");
-
-      let coincideTipoChipeadora;
-
-      if (esPrincipalMotor) { // Principal es de tipo MOTOR
-        coincideTipoChipeadora = esOpcionalMotor && !esOpcionalPTO; // Opcional debe ser MOTOR y no PTO
-      } else if (esPrincipalPTO) { // Principal es de tipo PTO
-        coincideTipoChipeadora = esOpcionalPTO && !esOpcionalMotor; // Opcional debe ser PTO y no MOTOR
-      } else { 
-        // Principal NO es ni MOTOR ni PTO (es genérico o un tipo diferente)
-        // En este caso, el opcional TAMPOCO debe ser MOTOR ni PTO para ser compatible
-        coincideTipoChipeadora = !esOpcionalMotor && !esOpcionalPTO;
-      }
-
-      if (!coincideTipoChipeadora) {
-        console.log(`Opcional ${opcional.Codigo_Producto} (${opcional.caracteristicas.nombre_del_producto || opcional.nombre_del_producto || 'Nombre no disponible'}) DESCARTADO. Tipo de chipeadora no coincide. Principal: "${tipoChipeadoraPrincipal}", Opcional: "${tipoChipeadoraOpcional}".`);
-        return false;
-      }
-      
-      console.log(`Opcional ${opcional.Codigo_Producto} (${opcional.caracteristicas.nombre_del_producto || opcional.nombre_del_producto || 'Nombre no disponible'}) COINCIDE POR MODELO Y TIPO DE CHIPEADORA.`);
-      return true;
-    });
-
-    console.log(`Encontrados ${opcionalesFiltrados.length} opcionales filtrados finales.`);
-
+    // Mapear los resultados al formato deseado para el frontend
     const opcionalesParaFrontend = opcionalesFiltrados.map(op => {
       const mapped = {
+        // Incluir todos los campos relevantes para el frontend
         ...op,
         codigo_producto: op.Codigo_Producto,
         nombre_del_producto: op.caracteristicas?.nombre_del_producto || op.nombre_del_producto,
         Descripcion: op.caracteristicas?.descripcion || op.descripcion || op.Descripcion,
         Modelo: op.caracteristicas?.modelo || op.modelo || op.Modelo,
+        asignado_a_codigo_principal: op.asignado_a_codigo_principal // Asegurar que este campo se incluye
       };
+      // Eliminar el campo original de MongoDB si es diferente y ya mapeamos a codigo_producto
       if (op.hasOwnProperty('Codigo_Producto') && mapped.codigo_producto !== undefined) {
-        delete mapped.Codigo_Producto;
+        delete mapped.Codigo_Producto; // Eliminar si ya está en codigo_producto
       }
+       // Asegurarse de que _id no se envíe al frontend a menos que sea necesario
+       delete mapped._id;
       return mapped;
     });
 
     res.status(200).json({
       success: true,
+      message: 'Opcionales encontrados',
       data: {
         total: opcionalesParaFrontend.length,
         products: opcionalesParaFrontend
@@ -559,10 +508,10 @@ const getOptionalProducts = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener productos opcionales (lógica con tipo de chipeadora):', error);
+    console.error('Error al obtener productos opcionales:', error);
     return res.status(500).json({
       success: false,
-      error: 'Error al obtener productos opcionales (lógica con tipo de chipeadora)',
+      error: 'Error al obtener productos opcionales',
       message: (error instanceof Error) ? error.message : String(error),
     });
   }
