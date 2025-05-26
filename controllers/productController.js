@@ -452,7 +452,20 @@ const getOptionalProducts = async (req, res) => {
         });
     }
 
-    const modeloPrincipalString = productoPrincipal.caracteristicas.modelo.toLowerCase();
+    // Verificar si el modelo existe ya sea en caracteristicas.modelo o en el nivel superior del documento
+    const modeloPrincipal = productoPrincipal.caracteristicas?.modelo || productoPrincipal.modelo;
+
+    if (!modeloPrincipal) {
+        return res.status(400).json({
+            success: false,
+            error: 'Datos incompletos en producto principal',
+            message: 'El producto principal no tiene el campo modelo definido (ni en caracteristicas.modelo ni a nivel superior).'
+        });
+    }
+
+    // Ahora usamos la variable modeloPrincipal para el resto de la lógica
+    const modeloPrincipalString = String(modeloPrincipal).toLowerCase();
+
     const tipoChipeadoraPrincipal = productoPrincipal.producto.toLowerCase(); // Ej: "chipeadora motor", "chipeadora pto"
 
     // Paso 1: Búsqueda inicial de candidatos
