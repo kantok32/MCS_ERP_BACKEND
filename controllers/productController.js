@@ -977,17 +977,88 @@ const uploadBulkProductsPlain = async (req, res) => {
             });
         }
 
-        // Extraer encabezados (primera fila)
-        const headers = data[0].map(header => String(header).trim());
+        // Definir mapeo de encabezados flexibles a nombres de campo del backend
+        const headerMap = {
+            'codigo_producto': 'Codigo_Producto',
+            'codigo producto': 'Codigo_Producto',
+            'nombre_del_producto': 'nombre_del_producto',
+            'nombre del producto': 'nombre_del_producto',
+            'nombre_producto': 'nombre_del_producto',
+            'nombre producto': 'nombre_del_producto',
+            'descripcion': 'descripcion',
+            'modelo': 'modelo',
+            'categoria': 'categoria',
+            'equipo u opcional': 'tipo', // Mapeamos 'equipo u opcional' a 'tipo'
+            'producto': 'producto',     // Para distinguir motor/pto, etc.
+            'fecha_cotizacion': 'fecha_cotizacion',
+            'costo_fabrica': 'costo_fabrica',
+            'costo fabrica': 'costo_fabrica',
+            'largo_m': 'largo_m', // Mantengo nombres como en la imagen por ahora
+            'ancho_mm': 'ancho_mm',
+            'alto_mm': 'alto_mm',
+            'peso_kg': 'peso_kg',
+            'linea_de_producto': 'linea_de_producto',
+            'marca': 'marca',
+            'marca_motor': 'marca_motor',
+            'combustible': 'combustible',
+            'hp': 'hp',
+            'diametro_mm': 'diametro_mm',
+            'movilidad': 'movilidad',
+            'rotacion': 'rotacion',
+            'opcional': 'opcional', // Si hay una columna explícita 'opcional'
+            'modelo_compatible_manual': 'modelo_compatible_manual',
+            'clasificacion_easysystems': 'clasificacion_easysystems',
+            'numero_caracteres': 'numero_caracteres',
+            'codigo_ea': 'codigo_ea',
+            'proveedor': 'proveedor',
+            'procedencia': 'procedencia',
+            'familia': 'familia',
+            'nombre_comercial': 'nombre_comercial',
+            'elemento_corte': 'elemento_corte',
+            'garganta_alimentacion_mm': 'garganta_alimentacion_mm',
+            'tipo_motor': 'tipo_motor',
+            'potencia_motor_kw_hp': 'potencia_motor_kw_hp',
+            'tipo_enganche': 'tipo_enganche',
+            'tipo_chasis': 'tipo_chasis',
+            'capacidad_chasis_velocidad': 'capacidad_chasis_velocidad',
+            'ultima_actualizacion': 'ultima_actualizacion',
+            // Agregar otros mapeos según sea necesario basándose en la plantilla real
+        };
 
-        // Validar encabezados requeridos
-        const requiredHeaders = ['Codigo_Producto', 'nombre_del_producto', 'modelo', 'categoria'];
-        const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+        // Función para estandarizar el nombre de un encabezado
+        const standardizeHeader = (header) => {
+            if (header === null || header === undefined) return '';
+            return String(header).trim().toLowerCase().replace(/\s+/g, '_');
+        };
+
+        // Extraer y estandarizar encabezados (primera fila)
+        const rawHeaders = data[0];
+        const headers = rawHeaders.map(standardizeHeader);
+
+        // Mapear los encabezados del archivo a los nombres de campo del backend
+        const mappedHeaders = headers.map(header => headerMap[header] || null); // Usa null si no se encuentra mapeo
+        const originalHeadersMap = {}; // Para referencia si es necesario depurar
+        headers.forEach((stdHeader, index) => { originalHeadersMap[stdHeader] = rawHeaders[index]; });
+
+        // Validar que los encabezados requeridos (usando los nombres del backend) estén presentes después del mapeo
+        // NOTA: Es importante que los nombres en requiredBackendFields coincidan con las CLAVES de headerMap.
+        const requiredBackendFields = ['Codigo_Producto', 'nombre_del_producto', 'modelo', 'categoria'];
         
-        if (missingHeaders.length > 0) {
+        const presentBackendFields = mappedHeaders.filter(mappedName => mappedName !== null); // Campos que sí pudimos mapear
+
+        const missingRequiredHeaders = requiredBackendFields.filter(requiredField => 
+             !presentBackendFields.includes(requiredField) // Verificar si el campo requerido está entre los mapeados presentes
+        );
+
+        if (missingRequiredHeaders.length > 0) {
+             // Opcional: dar más detalle, como los encabezados originales encontrados
+            console.error('Headers found in file (standardized):', headers);
+            console.error('Mapped backend fields found:', presentBackendFields);
             return res.status(400).json({ 
                 success: false, 
-                message: `Faltan encabezados requeridos: ${missingHeaders.join(', ')}` 
+                message: `Faltan campos requeridos (después del mapeo de encabezados): ${missingRequiredHeaders.join(', ')}. Encabezados presentes: ${presentBackendFields.join(', ')}.`, 
+                missingFields: missingRequiredHeaders,
+                presentFields: presentBackendFields
             });
         }
 
@@ -999,22 +1070,32 @@ const uploadBulkProductsPlain = async (req, res) => {
             const row = data[i];
             if (!row || row.length === 0) continue;
 
-            // Crear objeto de producto desde la fila
+            // Crear objeto de producto desde la fila, usando los encabezados mapeados
             const productData = {};
-            headers.forEach((header, index) => {
-                if (row[index] !== undefined && row[index] !== null) {
-                    productData[header] = row[index];
-                }
+            mappedHeaders.forEach((backendField, index) => {
+                // Solo incluimos si mapeó a un campo de backend válido (no null) y la celda tiene un valor (no undefined/null)
+                 if (backendField !== null && row[index] !== undefined && row[index] !== null) {
+                    productData[backendField] = row[index];
+                } else if (backendField !== null && (row[index] === undefined || row[index] === null)) {
+                    // Si el campo mapeó pero la celda está vacía, la incluimos con null o undefined
+                     productData[backendField] = null; // O undefined, dependiendo de preferencia
+                 }
+                 // Si backendField es null, ignoramos esta columna ya que no la mapeamos
             });
 
             try {
-                // Validar datos requeridos
-                if (!productData.Codigo_Producto || !productData.nombre_del_producto || !productData.modelo || !productData.categoria) {
-                    throw new Error('Faltan campos requeridos');
+                // Validar datos requeridos nuevamente (ahora usando los campos estandarizados en productData)
+                for(const requiredField of requiredBackendFields) {
+                    if (productData[requiredField] === undefined || productData[requiredField] === null || String(productData[requiredField]).trim() === ''){
+                         throw new Error(`Campo requerido vacío o inválido: ${requiredField}`);
+                    }
                 }
 
                 // Crear producto en la base de datos
+                // Es posible que necesites ajustar createProductInDB si espera una estructura anidada (ej. dimensiones)
+                // Pero por ahora, asumo que puede manejar campos aplanados o que la plantilla plana no tiene dimensiones anidadas.
                 const newProduct = await createProductInDB(productData);
+
                 results.push({ 
                     code: productData.Codigo_Producto, 
                     status: 'success', 
@@ -1022,10 +1103,13 @@ const uploadBulkProductsPlain = async (req, res) => {
                 });
             } catch (error) {
                 hasErrors = true;
+                // Incluir el código del producto si está disponible
+                const productCode = productData ? productData.Codigo_Producto || 'N/A' : 'N/A';
+                console.error(`Error processing row for product ${productCode}:`, error.message);
                 results.push({ 
-                    code: productData.Codigo_Producto || 'N/A', 
+                    code: productCode, 
                     status: 'error', 
-                    message: error.message 
+                    message: `Error al procesar: ${error.message}` 
                 });
             }
         }
