@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const cors = require('cors');
 
 // --- Importar controladores ---
 // Controlador para operaciones con Mongoose (crear, cargar excel)

@@ -108,6 +108,21 @@ const initializeServer = async () => {
     await initializeCache();
     console.log('[Server] Cache initialization complete.');
     
+    // Responder a todas las preflight OPTIONS
+    app.options('*', cors());
+
+    // Middleware de manejo de errores global que siempre agrega headers CORS
+    app.use((err, req, res, next) => {
+      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      if (err) {
+        res.status(err.status || 500).json({ message: err.message });
+      } else {
+        next();
+      }
+    });
+
     // Iniciar el servidor
     const PORT = process.env.PORT || port || 5001;
     app.listen(PORT, '0.0.0.0', () => {
