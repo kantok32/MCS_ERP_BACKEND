@@ -1083,7 +1083,74 @@ const uploadTechnicalSpecifications = async (req, res) => {
 // @route   POST /api/products/upload-plain
 // @access  Private/Admin (assuming)
 const uploadBulkProductsPlain = async (req, res) => {
-    // ... implementation ...
+    console.log('[Bulk Upload Plain] Request received.');
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No se subió ningún archivo.' });
+        }
+        console.log(`[Bulk Upload Plain] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
+
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet, { defval: null }); // [{col1:val1, col2:val2, ...}, ...]
+
+        if (!data || data.length === 0) {
+            return res.status(400).json({ message: 'El archivo Excel no contiene datos.' });
+        }
+
+        const operaciones = [];
+        const errores = [];
+        let processedCount = 0;
+
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            if (!row || Object.keys(row).length === 0) continue;
+            // Validar que tenga un código de producto
+            const codigo = row['Codigo_Producto'] || row['codigo_producto'] || row['codigo'] || row['Código_Producto'];
+            if (!codigo) {
+                errores.push({ row: i + 2, message: 'Falta Código_Producto en la fila.' });
+                continue;
+            }
+            // Puedes mapear/normalizar los campos aquí según tu modelo Producto
+            const productoData = { ...row, Codigo_Producto: codigo };
+            // Elimina campos vacíos
+            Object.keys(productoData).forEach(k => { if (productoData[k] === null || productoData[k] === '') delete productoData[k]; });
+            operaciones.push({
+                updateOne: {
+                    filter: { Codigo_Producto: codigo },
+                    update: { $set: productoData },
+                    upsert: true
+                }
+            });
+            processedCount++;
+        }
+
+        let resultado = null;
+        if (operaciones.length > 0) {
+            try {
+                resultado = await Producto.bulkWrite(operaciones, { ordered: false });
+                console.log('[Bulk Upload Plain] Bulk write operation result:', resultado);
+            } catch (bulkError) {
+                console.error('[Bulk Upload Plain] Error executing BulkWrite:', bulkError);
+                errores.push({ row: 'N/A', message: 'Error general durante la operación de escritura masiva.', details: bulkError.message });
+            }
+        }
+
+        const resumen = {
+            totalRows: data.length,
+            processed: processedCount,
+            inserted: resultado?.upsertedCount || 0,
+            updated: resultado?.modifiedCount || 0,
+            errors: errores
+        };
+        console.log('[Bulk Upload Plain] Final Summary:', JSON.stringify(resumen, null, 2));
+        const status = errores.length > 0 ? 207 : 200;
+        res.status(status).json({ message: 'Carga masiva (plana) completada.', summary: resumen });
+    } catch (error) {
+        console.error('[Bulk Upload Plain] Error general procesando el archivo subido:', error);
+        res.status(500).json({ message: 'Error interno del servidor al procesar el archivo subido (plano).', error: error.message });
+    }
 };
 
 // --- Función para inicializar el caché de productos al inicio de la aplicación ---
