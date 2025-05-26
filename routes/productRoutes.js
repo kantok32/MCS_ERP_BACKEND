@@ -29,13 +29,25 @@ router.get('/test/db-base-products', productController.testGetBaseProductsFromDB
 router.get('/currency/dollar', productController.getCachedDollarValue);
 router.get('/currency/euro', productController.getCachedEuroValue);
 
-// --- Rutas con parámetros ---
+// --- Rutas de descarga de plantillas (más específicas) ---
+router.get('/download-template', (req, res) => {
+    const filePath = path.join(__dirname, '../Plantilla_Carga_Equipos.xlsx');
+    res.download(filePath);
+});
+router.get('/download-specifications-template', (req, res) => {
+    const filePath = path.join(__dirname, '../Plantilla_Especificaciones.xlsx');
+    res.download(filePath);
+});
+
+// --- Rutas con parámetros fijos en el path (más específicas que :codigo) ---
+router.get('/code/:codigoProducto', productController.getProductByCode);
+
+// --- Rutas con parámetros variables al final (generales) ---
 router.get('/:codigo/specifications', productController.getProductSpecifications);
 router.get('/:codigo', productController.getProductByCode);
 
 // --- Rutas POST y PUT ---
 router.post('/opcionales-by-body', productController.getOptionalProductsFromBody);
-router.get('/code/:codigoProducto', productController.getProductByCode);
 router.post('/cache/reset', productController.resetCache);
 router.put('/code/:codigoProducto', productController.updateProduct);
 router.put('/code/:codigoProducto/toggle-discontinued', productController.toggleProductDiscontinuedStatus);
@@ -52,17 +64,5 @@ router.post('/upload-plain', upload.single('archivoExcelPlain'), productControll
 
 // Nueva ruta para actualizar especificaciones técnicas (Formato Matricial de Especificaciones)
 router.post('/upload-specifications', upload.single('file'), productController.uploadTechnicalSpecifications); 
-
-// Ruta para descargar la plantilla de carga de equipos
-router.get('/download-template', (req, res) => {
-    const filePath = path.join(__dirname, '../Plantilla_Carga_Equipos.xlsx');
-    res.download(filePath);
-});
-
-// Ruta para descargar la plantilla de especificaciones
-router.get('/download-specifications-template', (req, res) => {
-    const filePath = path.join(__dirname, '../Plantilla_Especificaciones.xlsx');
-    res.download(filePath);
-});
 
 module.exports = router;
