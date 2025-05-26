@@ -28,32 +28,6 @@ router.get('/opcionales/raw', productController.getRawOptionalProducts);
 router.get('/test/db-base-products', productController.testGetBaseProductsFromDBController);
 router.get('/currency/dollar', productController.getCachedDollarValue);
 router.get('/currency/euro', productController.getCachedEuroValue);
-router.get('/download-template', (req, res) => {
-  const templatePath = path.join(__dirname, '../Plantilla_Carga_Equipos.xlsx');
-  if (fs.existsSync(templatePath)) {
-    res.download(templatePath, 'Plantilla_Carga_Equipos.xlsx', (err) => {
-      if (err) {
-        console.error('Error downloading template:', err);
-        res.status(500).json({ message: 'Error downloading template' });
-      }
-    });
-  } else {
-    res.status(404).json({ message: 'Template file not found' });
-  }
-});
-router.get('/download-specifications-template', (req, res) => {
-  const templatePath = path.join(__dirname, '../Plantilla_Carga_Especificaciones.xlsx');
-  if (fs.existsSync(templatePath)) {
-    res.download(templatePath, 'Plantilla_Carga_Especificaciones.xlsx', (err) => {
-      if (err) {
-        console.error('Error downloading specifications template:', err);
-        res.status(500).json({ message: 'Error downloading specifications template' });
-      }
-    });
-  } else {
-    res.status(404).json({ message: 'Specifications template file not found' });
-  }
-});
 
 // --- Rutas con parámetros ---
 router.get('/:codigo/specifications', productController.getProductSpecifications);
@@ -70,16 +44,24 @@ router.delete('/cache', productController.clearCache);
 // router.post('/upload-bulk', upload.single('archivoExcel'), productoCtrl.uploadBulkProducts); 
 
 // Ruta para la carga PLANA de nuevos equipos (Plantilla General de Equipos)
-router.post(
-  '/upload-plain',
-  upload.single('archivoExcelPlain'), // Multer para archivos, no afecta JSON
-  productController.uploadBulkProductsPlain
-);
+router.post('/upload-plain', upload.single('archivoExcelPlain'), productController.uploadBulkProductsPlain);
 
 // Ruta para la carga MATRICIAL general de productos (si es un formato diferente al de especificaciones)
 // router.post('/upload-matrix', upload.single('archivoExcelMatrix'), productController.uploadBulkProductsMatrix); // Commented out 
 
 // Nueva ruta para actualizar especificaciones técnicas (Formato Matricial de Especificaciones)
 router.post('/upload-specifications', upload.single('file'), productController.uploadTechnicalSpecifications); 
+
+// Ruta para descargar la plantilla de carga de equipos
+router.get('/download-template', (req, res) => {
+    const filePath = path.join(__dirname, '../Plantilla_Carga_Equipos.xlsx');
+    res.download(filePath);
+});
+
+// Ruta para descargar la plantilla de especificaciones
+router.get('/download-specifications-template', (req, res) => {
+    const filePath = path.join(__dirname, '../Plantilla_Especificaciones.xlsx');
+    res.download(filePath);
+});
 
 module.exports = router;

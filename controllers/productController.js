@@ -936,6 +936,127 @@ const uploadBulkProductsMatrix = async (req, res) => {
     // ... implementation ...
 };
 
+// @desc    Upload bulk products from a plain template
+// @route   POST /api/products/upload-plain
+// @access  Private/Admin (assuming)
+const uploadBulkProductsPlain = async (req, res) => {
+    console.log('[Bulk Upload Plain] Request received for plain template upload.');
+    
+    // Verificar si se subió un archivo
+    if (!req.file) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'No se subió ningún archivo.' 
+        });
+    }
+
+    console.log(`[Bulk Upload Plain] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
+
+    try {
+        // Verificar que el archivo sea un Excel válido
+        if (!req.file.mimetype.includes('excel') && !req.file.mimetype.includes('spreadsheet')) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El archivo debe ser un archivo Excel válido.' 
+            });
+        }
+
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+
+        // Asumir que los datos están en la primera hoja
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Convertir la hoja a un array de arrays usando la función correcta
+        const data = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+
+        if (data.length < 2) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El archivo debe contener al menos una fila de encabezados y una fila de datos.' 
+            });
+        }
+
+        // Extraer encabezados (primera fila)
+        const headers = data[0].map(header => String(header).trim());
+
+        // Validar encabezados requeridos
+        const requiredHeaders = ['Codigo_Producto', 'nombre_del_producto', 'modelo', 'categoria'];
+        const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+        
+        if (missingHeaders.length > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Faltan encabezados requeridos: ${missingHeaders.join(', ')}` 
+            });
+        }
+
+        // Procesar filas de datos
+        const results = [];
+        let hasErrors = false;
+
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            if (!row || row.length === 0) continue;
+
+            // Crear objeto de producto desde la fila
+            const productData = {};
+            headers.forEach((header, index) => {
+                if (row[index] !== undefined && row[index] !== null) {
+                    productData[header] = row[index];
+                }
+            });
+
+            try {
+                // Validar datos requeridos
+                if (!productData.Codigo_Producto || !productData.nombre_del_producto || !productData.modelo || !productData.categoria) {
+                    throw new Error('Faltan campos requeridos');
+                }
+
+                // Crear producto en la base de datos
+                const newProduct = await createProductInDB(productData);
+                results.push({ 
+                    code: productData.Codigo_Producto, 
+                    status: 'success', 
+                    message: 'Producto creado exitosamente.' 
+                });
+            } catch (error) {
+                hasErrors = true;
+                results.push({ 
+                    code: productData.Codigo_Producto || 'N/A', 
+                    status: 'error', 
+                    message: error.message 
+                });
+            }
+        }
+
+        // Refrescar el caché global después de procesar todos los productos
+        try {
+            await initializeProductCache();
+            console.log('Cache refreshed after bulk plain upload.');
+        } catch (cacheError) {
+            console.error('Error refreshing cache after bulk upload:', cacheError);
+            // No consideramos esto un error fatal
+        }
+
+        // Enviar respuesta resumen
+        const status = hasErrors ? 207 : 200;
+        res.status(status).json({ 
+            success: true, 
+            message: 'Procesamiento de archivo completado.', 
+            results 
+        });
+
+    } catch (error) {
+        console.error('Error processing plain template file:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor al procesar el archivo.', 
+            error: error.message 
+        });
+    }
+};
+
 // @desc    Upload technical specifications from a matrix template
 // @route   POST /api/products/upload-specifications
 // @access  Private/Admin (assuming)
@@ -1079,80 +1200,6 @@ const uploadTechnicalSpecifications = async (req, res) => {
     }
 };
 
-// @desc    Upload bulk products from a plain Excel template
-// @route   POST /api/products/upload-plain
-// @access  Private/Admin (assuming)
-const uploadBulkProductsPlain = async (req, res) => {
-    console.log('[Bulk Upload Plain] Request received.');
-    try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'No se subió ningún archivo.' });
-        }
-        console.log(`[Bulk Upload Plain] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
-
-        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const data = xlsx.utils.sheet_to_json(worksheet, { defval: null }); // [{col1:val1, col2:val2, ...}, ...]
-
-        if (!data || data.length === 0) {
-            return res.status(400).json({ message: 'El archivo Excel no contiene datos.' });
-        }
-
-        const operaciones = [];
-        const errores = [];
-        let processedCount = 0;
-
-        for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            if (!row || Object.keys(row).length === 0) continue;
-            // Validar que tenga un código de producto
-            const codigo = row['Codigo_Producto'] || row['codigo_producto'] || row['codigo'] || row['Código_Producto'];
-            if (!codigo) {
-                errores.push({ row: i + 2, message: 'Falta Código_Producto en la fila.' });
-                continue;
-            }
-            // Puedes mapear/normalizar los campos aquí según tu modelo Producto
-            const productoData = { ...row, Codigo_Producto: codigo };
-            // Elimina campos vacíos
-            Object.keys(productoData).forEach(k => { if (productoData[k] === null || productoData[k] === '') delete productoData[k]; });
-            operaciones.push({
-                updateOne: {
-                    filter: { Codigo_Producto: codigo },
-                    update: { $set: productoData },
-                    upsert: true
-                }
-            });
-            processedCount++;
-        }
-
-        let resultado = null;
-        if (operaciones.length > 0) {
-            try {
-                resultado = await Producto.bulkWrite(operaciones, { ordered: false });
-                console.log('[Bulk Upload Plain] Bulk write operation result:', resultado);
-            } catch (bulkError) {
-                console.error('[Bulk Upload Plain] Error executing BulkWrite:', bulkError);
-                errores.push({ row: 'N/A', message: 'Error general durante la operación de escritura masiva.', details: bulkError.message });
-            }
-        }
-
-        const resumen = {
-            totalRows: data.length,
-            processed: processedCount,
-            inserted: resultado?.upsertedCount || 0,
-            updated: resultado?.modifiedCount || 0,
-            errors: errores
-        };
-        console.log('[Bulk Upload Plain] Final Summary:', JSON.stringify(resumen, null, 2));
-        const status = errores.length > 0 ? 207 : 200;
-        res.status(status).json({ message: 'Carga masiva (plana) completada.', summary: resumen });
-    } catch (error) {
-        console.error('[Bulk Upload Plain] Error general procesando el archivo subido:', error);
-        res.status(500).json({ message: 'Error interno del servidor al procesar el archivo subido (plano).', error: error.message });
-    }
-};
-
 // --- Función para inicializar el caché de productos al inicio de la aplicación ---
 async function initializeProductCache() {
   try {
@@ -1219,9 +1266,6 @@ module.exports = {
     calculatePruebaCosto,
     calculateCostoProductoFromProfile,
     uploadBulkProductsMatrix,
-    uploadTechnicalSpecifications,
     uploadBulkProductsPlain,
-    // Ensure initializeProductCache and testGetBaseProductsFromDBController are NOT exported if they are only for internal use
-    // If initializeProductCache is needed externally (unlikely), export it.
-    // testGetBaseProductsFromDBController is used in routes, so it needs export.
+    uploadTechnicalSpecifications
 };
