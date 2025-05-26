@@ -1178,6 +1178,10 @@ const uploadBulkProductsPlain = async (req, res) => {
                          // Dependiendo de updateProductInDB, puede que necesites eliminar Codigo_Producto de updateData
                          // delete updateData.Codigo_Producto;
 
+                         // --- Logging: updateData antes de updateProductInDB ---
+                         console.log(`[Bulk Upload Plain] Updating product ${productData.Codigo_Producto}. Update data:`, updateData);
+                         // Fin Logging ---
+
                          const updatedProduct = await updateProductInDB(productData.Codigo_Producto, updateData);
 
                          if (updatedProduct) {
