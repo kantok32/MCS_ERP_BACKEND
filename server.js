@@ -36,7 +36,7 @@ console.log('================================================\n');
 // Configuración de Express
 const app = express();
 
-// Configuración básica de CORS
+// Configuración de CORS para permitir cualquier origen (para depuración)
 app.use(cors());
 
 // Middleware para parsear JSON y URL-encoded
