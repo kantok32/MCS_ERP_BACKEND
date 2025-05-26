@@ -1137,16 +1137,38 @@ const uploadTechnicalSpecifications = async (req, res) => {
                 const specDataRowIndex = j + 1;
 
                 if (data[specDataRowIndex] && data[specDataRowIndex][productDataColumnIndex] !== undefined) {
+                    // Asegurarse de no guardar 'null' si la celda está vacía para evitar sobreescribir con null innecesariamente,
+                    // aunque en este caso queremos representar la ausencia de valor.
                     technicalSpecifications[specName] = data[specDataRowIndex][productDataColumnIndex];
                 } else {
+                    // Explicitamente establecer a null si la celda está vacía
                     technicalSpecifications[specName] = null;
                 }
             }
 
+            // Construir el objeto de actualización de forma explícita para el subdocumento
+            const updateObject = {};
+            // Iterar sobre las especificaciones recolectadas y añadirlas al path correcto
+            for (const specName in technicalSpecifications) {
+                if (technicalSpecifications.hasOwnProperty(specName)) {
+                    updateObject[`especificaciones_tecnicas.${specName}`] = technicalSpecifications[specName];
+                }
+            }
+
+            // Si no hay especificaciones, tal vez queramos limpiar el objeto o dejarlo como está
+            // Si updateObject está vacío, updateProductInDB podría no hacer nada.
+            // Aquí asumimos que siempre habrá especificaciones si el archivo está bien formado.
+            if (Object.keys(updateObject).length === 0 && specNames.length > 0) {
+                 console.warn(`[Bulk Upload Specs] No specification data collected for product ${productCode} despite finding specification names.`);
+                 // Podríamos decidir qué hacer aquí: saltar la actualización, limpiar el campo, etc.
+                 // Por ahora, si updateObject está vacío, no se actualizarán especificaciones_tecnicas.
+                 // Si hay especificaciones definidas en la plantilla pero todas las celdas están vacías,
+                 // updateObject contendrá { 'especificaciones_tecnicas.specName1': null, ... }
+            }
+
             try {
-                const updatedProduct = await updateProductInDB(productCode, { 
-                    especificaciones_tecnicas: technicalSpecifications 
-                });
+                // Pasar el objeto de actualización explícito al servicio de datos
+                const updatedProduct = await updateProductInDB(productCode, updateObject);
 
                 if (updatedProduct) {
                     results.push({ 
