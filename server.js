@@ -53,6 +53,7 @@ const initializeServer = async () => {
       'http://localhost:5173',           // Desarrollo local
     ];
 
+    // Middleware de CORS
     app.use(cors({
       origin: function (origin, callback) {
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
@@ -60,11 +61,16 @@ const initializeServer = async () => {
         } else {
           callback(new Error('Not allowed by CORS'));
         }
-      }
+      },
+      credentials: true
     }));
 
+    // Middleware para parsear JSON y URL-encoded
     app.use(express.json({ limit: '50mb' }));
     app.use(express.urlencoded({ limit: '50mb', extended: true }));
+    
+    // Middleware para manejar OPTIONS requests
+    app.options('*', cors());
     
     // Configuración de rutas
     app.use('/api/users', userRoutes);
@@ -83,22 +89,18 @@ const initializeServer = async () => {
     app.use('/api/calculo-historial', calculoHistorialRoutes);
     // app.use('/api/webhook', webhookRoutes); // <-- Comentar ya que no existe
     
-    // --- NUEVA RUTA RAIZ DE LA API para listar endpoints ---
+    // Ruta raíz de la API
     app.get('/api', (req, res) => {
       res.status(200).json({
         message: 'Bienvenido a la API de MCS ERP Backend',
-        // Formato mejorado para listar los endpoints principales
         availableEndpointsOverview: {
-          '/api/users': 'Gestión de usuarios (registro, login)',
-          '/api/products': 'Gestión de productos (obtener, filtrar, opcionales, caché, etc.)',
-          '/api/currency': 'Obtener valores de divisas (dólar, euro)',
-          '/api/costo-perfiles': 'Gestión de perfiles de costo',
-          '/api/langchain': 'Funcionalidades de Langchain (procesamiento de lenguaje, etc.)',
-          '/api/calculo-historial': 'Historial de cálculos y operaciones guardadas',
-          // Añadir aquí otros grupos de rutas principales según se agreguen
-        },
-        documentation: '[Considera añadir un enlace a la documentación detallada aquí si existe]', // Mantén o mejora este enlace
-        note: 'Esta es una lista de los principales grupos de endpoints. Para detalles específicos (métodos GET, POST, PUT, DELETE, parámetros, etc.), por favor consulte la documentación completa de la API.'
+          '/api/users': 'Gestión de usuarios',
+          '/api/products': 'Gestión de productos',
+          '/api/currency': 'Valores de divisas',
+          '/api/costo-perfiles': 'Perfiles de costo',
+          '/api/langchain': 'Funcionalidades Langchain',
+          '/api/calculo-historial': 'Historial de cálculos'
+        }
       });
     });
     // -----------------------------------------------------
@@ -108,30 +110,36 @@ const initializeServer = async () => {
     await initializeCache();
     console.log('[Server] Cache initialization complete.');
     
-    // Responder a todas las preflight OPTIONS
-    app.options('*', cors());
-
-    // Middleware de manejo de errores global que siempre agrega headers CORS
+    // Middleware de manejo de errores global
     app.use((err, req, res, next) => {
+      console.error('[Server] Error:', err);
       res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
       res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      if (err) {
-        res.status(err.status || 500).json({ message: err.message });
-      } else {
-        next();
-      }
+      res.status(err.status || 500).json({ 
+        message: err.message || 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+      });
     });
 
     // Iniciar el servidor
     const PORT = process.env.PORT || port || 5001;
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n---- Server running on 0.0.0.0:${PORT} ----`);
       console.log(`Backend API accessible at: http://localhost:${PORT}/api`);
       console.log(`Admin panel accessible at: http://localhost:5173/admin\n`);
     }).on('error', (err) => {
       console.error("[Server] Server startup error:", err);
       process.exit(1);
+    });
+
+    // Manejo de señales de terminación
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM signal received: closing HTTP server');
+      server.close(() => {
+        console.log('HTTP server closed');
+        process.exit(0);
+      });
     });
   } catch (error) {
     console.error('[Server] Error during initialization:', error);

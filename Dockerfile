@@ -25,7 +25,10 @@ FROM node:18-alpine
 # Set the working directory inside the container
 WORKDIR /app
 
-ENV HOST=0.0.0.0 
+# Set environment variables
+ENV HOST=0.0.0.0
+ENV PORT=5001
+ENV NODE_ENV=production
 
 # Install system dependencies required for PhantomJS
 RUN apk add --no-cache \
@@ -62,7 +65,7 @@ ENV TMPDIR=/app/tmp
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --production
 
 # Copy the rest of the application source code to the container
 COPY . .
@@ -73,8 +76,12 @@ RUN chown -R node:node /app
 # Switch to non-root user
 USER node
 
-# Expose the port your Nest.js application is listening on
-EXPOSE 5001
+# Expose the port your application is listening on
+EXPOSE ${PORT}
 
-# Command to start your Nest.js application
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/api || exit 1
+
+# Command to start your application
 CMD ["node", "server.js"]
