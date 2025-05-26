@@ -35,6 +35,7 @@ router.get('/:codigo', productController.getProductByCode);
 
 // --- Rutas POST y PUT ---
 router.post('/opcionales-by-body', productController.getOptionalProductsFromBody);
+router.get('/code/:codigoProducto', productController.getProductByCode);
 router.post('/cache/reset', productController.resetCache);
 router.put('/code/:codigoProducto', productController.updateProduct);
 router.put('/code/:codigoProducto/toggle-discontinued', productController.toggleProductDiscontinuedStatus);
