@@ -941,12 +941,12 @@ const uploadBulkProductsMatrix = async (req, res) => {
 // @access  Private/Admin (assuming)
 const uploadBulkProductsPlain = async (req, res) => {
     console.log('[Bulk Upload Plain] Request received for plain template upload.');
-    
+
     // Verificar si se subió un archivo
     if (!req.file) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'No se subió ningún archivo.' 
+        return res.status(400).json({
+            success: false,
+            message: 'No se subió ningún archivo.'
         });
     }
 
@@ -955,9 +955,9 @@ const uploadBulkProductsPlain = async (req, res) => {
     try {
         // Verificar que el archivo sea un Excel válido
         if (!req.file.mimetype.includes('excel') && !req.file.mimetype.includes('spreadsheet')) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'El archivo debe ser un archivo Excel válido.' 
+            return res.status(400).json({
+                success: false,
+                message: 'El archivo debe ser un archivo Excel válido.'
             });
         }
 
@@ -967,98 +967,58 @@ const uploadBulkProductsPlain = async (req, res) => {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
 
-        // Convertir la hoja a un array de arrays usando la función correcta
-        const data = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+        // Convertir la hoja a un array de objetos usando la primera fila como encabezados
+        // Esto leerá los encabezados tal cual están (ahora en minúscula)
+        const data = xlsx.utils.sheet_to_json(worksheet);
 
-        if (data.length < 2) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'El archivo debe contener al menos una fila de encabezados y una fila de datos.' 
+        if (data.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'El archivo no contiene filas de datos.'
             });
         }
 
-        // Definir mapeo de encabezados flexibles a nombres de campo del backend
+        // --- Definir el mapeo de encabezados de la plantilla a nombres de campo de la DB ---
+        // Esperamos encabezados en minúscula desde la plantilla actualizada
         const headerMap = {
             'codigo_producto': 'Codigo_Producto',
-            'codigo producto': 'Codigo_Producto',
-            'nombre_del_producto': 'nombre_del_producto',
-            'nombre del producto': 'nombre_del_producto',
-            'nombre_producto': 'nombre_del_producto',
-            'nombre producto': 'nombre_del_producto',
+            'nombre_producto': 'nombre_del_producto', // Mapeo de nombre
             'descripcion': 'descripcion',
             'modelo': 'modelo',
-            'categoria': 'categoria',
-            'equipo u opcional': 'tipo', // Mapeamos 'equipo u opcional' a 'tipo'
-            'producto': 'producto',     // Para distinguir motor/pto, etc.
+            'equipo u opcional': 'categoria', // Mapeo crucial para 'categoria'
+            'producto': 'producto',
             'fecha_cotizacion': 'fecha_cotizacion',
-            'costo_fabrica': 'costo_fabrica',
-            'costo fabrica': 'costo_fabrica',
-            'largo_m': 'largo_m', // Mantengo nombres como en la imagen por ahora
-            'ancho_mm': 'ancho_mm',
-            'alto_mm': 'alto_mm',
+            'costo fabrica': 'costo_fabrica', // Mapeo de espacio a guion bajo
+            'largo_mm': 'dimensiones.largo_cm', // Necesita conversión y anidamiento
+            'ancho_mm': 'dimensiones.ancho_cm', // Necesita conversión y anidamiento
+            'alto_mm': 'dimensiones.alto_cm',   // Necesita conversión y anidamiento
             'peso_kg': 'peso_kg',
-            'linea_de_producto': 'linea_de_producto',
-            'marca': 'marca',
-            'marca_motor': 'marca_motor',
-            'combustible': 'combustible',
-            'hp': 'hp',
-            'diametro_mm': 'diametro_mm',
-            'movilidad': 'movilidad',
-            'rotacion': 'rotacion',
-            'opcional': 'opcional', // Si hay una columna explícita 'opcional'
-            'modelo_compatible_manual': 'modelo_compatible_manual',
-            'clasificacion_easysystems': 'clasificacion_easysystems',
-            'numero_caracteres': 'numero_caracteres',
-            'codigo_ea': 'codigo_ea',
-            'proveedor': 'proveedor',
-            'procedencia': 'procedencia',
-            'familia': 'familia',
-            'nombre_comercial': 'nombre_comercial',
-            'elemento_corte': 'elemento_corte',
-            'garganta_alimentacion_mm': 'garganta_alimentacion_mm',
-            'tipo_motor': 'tipo_motor',
-            'potencia_motor_kw_hp': 'potencia_motor_kw_hp',
-            'tipo_enganche': 'tipo_enganche',
-            'tipo_chasis': 'tipo_chasis',
-            'capacidad_chasis_velocidad': 'capacidad_chasis_velocidad',
-            'ultima_actualizacion': 'ultima_actualizacion',
-            // Agregar otros mapeos según sea necesario basándose en la plantilla real
+            // Agrega aquí otros mapeos si tu plantilla incluye más columnas
+            // ejemplo: 'otra_columna_plantilla': 'nombre_campo_db',
         };
 
-        // Función para estandarizar el nombre de un encabezado
-        const standardizeHeader = (header) => {
-            if (header === null || header === undefined) return '';
-            return String(header).trim().toLowerCase().replace(/\s+/g, '_');
-        };
+        // Encabezados requeridos (nombres de campo de la DB esperados por el backend)
+        const requiredFields = [
+          'Codigo_Producto', 'nombre_del_producto', 'modelo', 'categoria',
+          'peso_kg', 'dimensiones.largo_cm', 'dimensiones.ancho_cm', 'dimensiones.alto_cm'
+        ];
 
-        // Extraer y estandarizar encabezados (primera fila)
-        const rawHeaders = data[0];
-        const headers = rawHeaders.map(standardizeHeader);
-
-        // Mapear los encabezados del archivo a los nombres de campo del backend
-        const mappedHeaders = headers.map(header => headerMap[header] || null); // Usa null si no se encuentra mapeo
-        const originalHeadersMap = {}; // Para referencia si es necesario depurar
-        headers.forEach((stdHeader, index) => { originalHeadersMap[stdHeader] = rawHeaders[index]; });
-
-        // Validar que los encabezados requeridos (usando los nombres del backend) estén presentes después del mapeo
-        // NOTA: Es importante que los nombres en requiredBackendFields coincidan con las CLAVES de headerMap.
-        const requiredBackendFields = ['Codigo_Producto', 'nombre_del_producto', 'modelo', 'categoria'];
+        // Verificar si todos los encabezados de la plantilla mapeados a campos requeridos están presentes
+        // Primero obtenemos los encabezados reales del archivo (en minúscula)
+        const actualHeaders = Object.keys(data[0]).map(h => String(h).toLowerCase());
         
-        const presentBackendFields = mappedHeaders.filter(mappedName => mappedName !== null); // Campos que sí pudimos mapear
+        const missingHeaders = requiredFields.filter(requiredField => {
+            // Buscar el encabezado de la plantilla que mapea a este campo requerido
+            const templateHeader = Object.keys(headerMap).find(key => headerMap[key] === requiredField);
+            // Si no hay un mapeo definido O el encabezado mapeado no está en el archivo, entonces falta.
+            return !templateHeader || !actualHeaders.includes(templateHeader);
+        });
 
-        const missingRequiredHeaders = requiredBackendFields.filter(requiredField => 
-             !presentBackendFields.includes(requiredField) // Verificar si el campo requerido está entre los mapeados presentes
-        );
-
-        if (missingRequiredHeaders.length > 0) {
-             // Opcional: dar más detalle, como los encabezados originales encontrados
-            console.error('Headers found in file (standardized):', headers);
-            console.error('Mapped backend fields found:', presentBackendFields);
-            return res.status(400).json({ 
-                success: false, 
-                message: `Faltan campos requeridos (después del mapeo de encabezados): ${missingRequiredHeaders.join(', ')}. Encabezados presentes: ${presentBackendFields.join(', ')}.`, 
-                missingFields: missingRequiredHeaders,
-                presentFields: presentBackendFields
+        if (missingHeaders.length > 0) {
+            // Informar al usuario sobre los campos de BD que faltan (basado en el mapeo)
+            return res.status(400).json({
+                success: false,
+                message: `Faltan campos requeridos (basado en mapeo de plantilla): ${missingHeaders.join(', ')}`
             });
         }
 
@@ -1066,50 +1026,89 @@ const uploadBulkProductsPlain = async (req, res) => {
         const results = [];
         let hasErrors = false;
 
-        for (let i = 1; i < data.length; i++) {
+        for (let i = 0; i < data.length; i++) {
             const row = data[i];
-            if (!row || row.length === 0) continue;
+            if (!row) continue; // Saltar filas vacías
 
-            // Crear objeto de producto desde la fila, usando los encabezados mapeados
             const productData = {};
-            mappedHeaders.forEach((backendField, index) => {
-                // Solo incluimos si mapeó a un campo de backend válido (no null) y la celda tiene un valor (no undefined/null)
-                 if (backendField !== null && row[index] !== undefined && row[index] !== null) {
-                    productData[backendField] = row[index];
-                } else if (backendField !== null && (row[index] === undefined || row[index] === null)) {
-                    // Si el campo mapeó pero la celda está vacía, la incluimos con null o undefined
-                     productData[backendField] = null; // O undefined, dependiendo de preferencia
-                 }
-                 // Si backendField es null, ignoramos esta columna ya que no la mapeamos
-            });
+            productData.dimensiones = {}; // Inicializar subdocumento dimensiones
 
-            try {
-                // Validar datos requeridos nuevamente (ahora usando los campos estandarizados en productData)
-                for(const requiredField of requiredBackendFields) {
-                    if (productData[requiredField] === undefined || productData[requiredField] === null || String(productData[requiredField]).trim() === ''){
-                         throw new Error(`Campo requerido vacío o inválido: ${requiredField}`);
+            // Mapear datos de la fila a productData usando headerMap
+            for (const templateHeader in row) {
+                if (row.hasOwnProperty(templateHeader)) {
+                    const dbField = headerMap[String(templateHeader).toLowerCase()]; // Obtener nombre de campo de DB usando el mapeo (encabezado en minúscula)
+                    const value = row[templateHeader];
+
+                    if (dbField) { // Si hay un mapeo para este encabezado
+                        // Manejar campos anidados como dimensiones
+                        if (dbField.startsWith('dimensiones.')) {
+                            const dimensionField = dbField.split('.')[1]; // ej: largo_cm
+                            const mmValue = parseNumberValue(value); // Usar helper existente para parsear número
+                            if (mmValue !== null) {
+                                // Convertir mm a cm
+                                productData.dimensiones[dimensionField] = mmValue / 10;
+                            } else {
+                                productData.dimensiones[dimensionField] = null; // O undefined, dependiendo de si quieres guardar nulls
+                            }
+                        } else {
+                            // Campos de nivel superior
+                            productData[dbField] = value;
+                        }
+                    } else {
+                        // Si no hay un mapeo definido para este encabezado de columna,
+                        // puedes decidir si lo ignoras o lo añades directamente.
+                        // Por ahora, lo añadiremos si no empieza con '__' (convención de Excel/NPM)
+                         if (!String(templateHeader).startsWith('__')) {
+                             // Opcional: añadir campos no mapeados directamente, con el nombre de la plantilla o normalizado
+                             // console.warn(`[Bulk Upload Plain] No mapping defined for header: ${templateHeader}. Adding directly.`);
+                             // productData[String(templateHeader)] = value; // Añadir con el nombre original
+                         }
                     }
                 }
+            }
+
+            // Validar que los campos requeridos (mapeados) tienen valor después del mapeo
+            const missingRequiredValues = requiredFields.filter(requiredField => {
+                // Para campos anidados como dimensiones.largo_cm
+                if (requiredField.includes('.')) {
+                    const [parent, child] = requiredField.split('.');
+                    return !productData[parent] || productData[parent][child] === undefined || productData[parent][child] === null;
+                } else {
+                     return productData[requiredField] === undefined || productData[requiredField] === null;
+                }
+            });
+
+            if (missingRequiredValues.length > 0) {
+                 hasErrors = true;
+                 results.push({
+                     // Intentar obtener el Codigo_Producto mapeado o usar el valor original si existe
+                     code: productData.Codigo_Producto || row['codigo_producto'] || 'N/A',
+                     status: 'error',
+                     message: `Faltan valores para los campos requeridos (basado en mapeo): ${missingRequiredValues.join(', ')}`
+                 });
+                 continue; // Saltar a la siguiente fila si faltan valores requeridos
+            }
+
+            try {
+                // Asegurar que Codigo_Producto tenga la capitalización correcta
+                 if (productData.Codigo_Producto) {
+                     productData.Codigo_Producto = String(productData.Codigo_Producto);
+                 }
 
                 // Crear producto en la base de datos
-                // Es posible que necesites ajustar createProductInDB si espera una estructura anidada (ej. dimensiones)
-                // Pero por ahora, asumo que puede manejar campos aplanados o que la plantilla plana no tiene dimensiones anidadas.
+                // createProductInDB debe manejar la validación del esquema completo de Producto
                 const newProduct = await createProductInDB(productData);
-
-                results.push({ 
-                    code: productData.Codigo_Producto, 
-                    status: 'success', 
-                    message: 'Producto creado exitosamente.' 
+                results.push({
+                    code: productData.Codigo_Producto,
+                    status: 'success',
+                    message: 'Producto creado exitosamente.'
                 });
             } catch (error) {
                 hasErrors = true;
-                // Incluir el código del producto si está disponible
-                const productCode = productData ? productData.Codigo_Producto || 'N/A' : 'N/A';
-                console.error(`Error processing row for product ${productCode}:`, error.message);
-                results.push({ 
-                    code: productCode, 
-                    status: 'error', 
-                    message: `Error al procesar: ${error.message}` 
+                results.push({
+                    code: productData.Codigo_Producto || row['codigo_producto'] || 'N/A',
+                    status: 'error',
+                    message: `Error al crear/procesar producto: ${error.message}`
                 });
             }
         }
@@ -1125,18 +1124,18 @@ const uploadBulkProductsPlain = async (req, res) => {
 
         // Enviar respuesta resumen
         const status = hasErrors ? 207 : 200;
-        res.status(status).json({ 
-            success: true, 
-            message: 'Procesamiento de archivo completado.', 
-            results 
+        res.status(status).json({
+            success: true,
+            message: 'Procesamiento de archivo completado.',
+            results
         });
 
     } catch (error) {
         console.error('Error processing plain template file:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error interno del servidor al procesar el archivo.', 
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor al procesar el archivo.',
+            error: error.message
         });
     }
 };
