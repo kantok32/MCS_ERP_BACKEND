@@ -1018,6 +1018,7 @@ const uploadBulkProductsPlain = async (req, res) => {
             'dimensiones.largo_cm': 'largo_mm', // Necesita conversión de mm a cm
             'dimensiones.ancho_cm': 'ancho_mm', // Necesita conversión de mm a cm
             'dimensiones.alto_cm': 'alto_mm',   // Necesita conversión de mm a cm
+            'asignado_a_codigo_principal': 'equipo u opcional', // Add mapping for the "equipo u opcional" column
             // Agrega aquí otros campos de DB y su forma normalizada en la plantilla si es necesario
         };
 
@@ -1109,6 +1110,8 @@ const uploadBulkProductsPlain = async (req, res) => {
                                 productData.dimensiones[dimensionField] = null; 
                              }
                         }
+                    } else if (dbField === 'asignado_a_codigo_principal') { // Explicitly handle the new field
+                        productData.asignado_a_codigo_principal = value;
                     } else {
                         // Campos de nivel superior
                         productData[dbField] = value;
