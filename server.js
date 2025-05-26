@@ -33,121 +33,130 @@ console.log('Por favor espere mientras se preparan las bases de datos y modelos.
 console.log('Esto podría tardar unos segundos...');
 console.log('================================================\n');
 
-// Inicialización extendida con configuración de modelos
-const initializeServer = async () => {
+// Configuración de Express
+const app = express();
+
+// Configuración de CORS
+const allowedOrigins = [
+  'https://mcs-erp-frontend.web.app', // Producción
+  'http://localhost:5173',           // Desarrollo local
+];
+
+console.log('[Server] Configuring CORS...');
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
+// Middleware para parsear JSON y URL-encoded
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Middleware para manejar OPTIONS requests
+app.options('*', cors());
+
+console.log('[Server] Registering routes...');
+// Configuración de rutas
+app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/currency', currencyRoutes);
+// Usar la ruta correcta para perfiles
+// app.use('/api/perfiles', perfilesRoutes);
+// Registrar la nueva ruta para perfiles de costo
+app.use('/api/costo-perfiles', costoPerfilRoutes);
+// Eliminar uso de rutas obsoletas
+// app.use('/api/overrides', overridesRoutes);
+// app.use('/api/category-overrides', categoryOverridesRoutes);
+// app.use('/api', costosRoutes); // REMOVE THIS LINE
+// Registrar las nuevas rutas de Langchain
+app.use('/api/langchain', langchainRoutes);
+app.use('/api/calculo-historial', calculoHistorialRoutes);
+// app.use('/api/webhook', webhookRoutes); // <-- Comentar ya que no existe
+
+// Ruta raíz de la API
+app.get('/api', (req, res) => {
+  res.status(200).json({
+    message: 'Bienvenido a la API de MCS ERP Backend',
+    availableEndpointsOverview: {
+      '/api/users': 'Gestión de usuarios',
+      '/api/products': 'Gestión de productos',
+      '/api/currency': 'Valores de divisas',
+      '/api/costo-perfiles': 'Perfiles de costo',
+      '/api/langchain': 'Funcionalidades Langchain',
+      '/api/calculo-historial': 'Historial de cálculos'
+    }
+  });
+});
+
+// Ruta de health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Middleware de manejo de errores global
+app.use((err, req, res, next) => {
+  console.error('[Server] Error:', err);
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(err.status || 500).json({ 
+    message: err.message || 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
+});
+
+// Iniciar el servidor
+const PORT = process.env.PORT || 5001;
+console.log(`[Server] Starting server on port ${PORT}...`);
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n---- Server running on 0.0.0.0:${PORT} ----`);
+  console.log(`Backend API accessible at: http://localhost:${PORT}/api`);
+});
+
+// Manejo de errores del servidor
+server.on('error', (err) => {
+  console.error("[Server] Server startup error:", err);
+  process.exit(1);
+});
+
+// Manejo de señales de terminación
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
+});
+
+// Inicialización asíncrona
+const initialize = async () => {
   try {
+    console.log('[Server] Starting initialization...');
+    
     // Conectar a la base de datos
+    console.log('[Server] Connecting to database...');
     await connectDB();
-    
-    // Inicializar modelos llamando al método estático en el MODELO
-    console.log('[Server] Initializing data models...');
-    // await PricingOverride.initializeDefaults(); // REMOVE THIS LINE
-    console.log('[Server] Models initialization complete.');
-    
-    // Configuración de Express
-    const app = express();
+    console.log('[Server] Database connected successfully');
 
-    // Configuración de CORS
-    const allowedOrigins = [
-      'https://mcs-erp-frontend.web.app', // Producción
-      'http://localhost:5173',           // Desarrollo local
-    ];
-
-    // Middleware de CORS
-    app.use(cors({
-      origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      },
-      credentials: true
-    }));
-
-    // Middleware para parsear JSON y URL-encoded
-    app.use(express.json({ limit: '50mb' }));
-    app.use(express.urlencoded({ limit: '50mb', extended: true }));
-    
-    // Middleware para manejar OPTIONS requests
-    app.options('*', cors());
-    
-    // Configuración de rutas
-    app.use('/api/users', userRoutes);
-    app.use('/api/products', productRoutes);
-    app.use('/api/currency', currencyRoutes);
-    // Usar la ruta correcta para perfiles
-    // app.use('/api/perfiles', perfilesRoutes);
-    // Registrar la nueva ruta para perfiles de costo
-    app.use('/api/costo-perfiles', costoPerfilRoutes);
-    // Eliminar uso de rutas obsoletas
-    // app.use('/api/overrides', overridesRoutes);
-    // app.use('/api/category-overrides', categoryOverridesRoutes);
-    // app.use('/api', costosRoutes); // REMOVE THIS LINE
-    // Registrar las nuevas rutas de Langchain
-    app.use('/api/langchain', langchainRoutes);
-    app.use('/api/calculo-historial', calculoHistorialRoutes);
-    // app.use('/api/webhook', webhookRoutes); // <-- Comentar ya que no existe
-    
-    // Ruta raíz de la API
-    app.get('/api', (req, res) => {
-      res.status(200).json({
-        message: 'Bienvenido a la API de MCS ERP Backend',
-        availableEndpointsOverview: {
-          '/api/users': 'Gestión de usuarios',
-          '/api/products': 'Gestión de productos',
-          '/api/currency': 'Valores de divisas',
-          '/api/costo-perfiles': 'Perfiles de costo',
-          '/api/langchain': 'Funcionalidades Langchain',
-          '/api/calculo-historial': 'Historial de cálculos'
-        }
-      });
-    });
-    // -----------------------------------------------------
-    
     // Inicializar caché
     console.log('[Server] Initializing cache...');
     await initializeCache();
-    console.log('[Server] Cache initialization complete.');
-    
-    // Middleware de manejo de errores global
-    app.use((err, req, res, next) => {
-      console.error('[Server] Error:', err);
-      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      res.status(err.status || 500).json({ 
-        message: err.message || 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err : {}
-      });
-    });
+    console.log('[Server] Cache initialization complete');
 
-    // Iniciar el servidor
-    const PORT = process.env.PORT || port || 5001;
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n---- Server running on 0.0.0.0:${PORT} ----`);
-      console.log(`Backend API accessible at: http://localhost:${PORT}/api`);
-      console.log(`Admin panel accessible at: http://localhost:5173/admin\n`);
-    }).on('error', (err) => {
-      console.error("[Server] Server startup error:", err);
-      process.exit(1);
-    });
-
-    // Manejo de señales de terminación
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM signal received: closing HTTP server');
-      server.close(() => {
-        console.log('HTTP server closed');
-        process.exit(0);
-      });
-    });
   } catch (error) {
     console.error('[Server] Error during initialization:', error);
     process.exit(1);
   }
 };
 
-// Initialize cache on startup
+// Función para inicializar caché
 const initializeCache = async () => {
   try {
     // Inicializar caché de divisas
@@ -180,5 +189,5 @@ const initializeCache = async () => {
   }
 };
 
-// Iniciar el servidor
-initializeServer();
+// Iniciar la inicialización
+initialize();
