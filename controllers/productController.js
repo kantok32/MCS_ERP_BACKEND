@@ -1033,19 +1033,20 @@ const uploadBulkProductsPlain = async (req, res) => {
              String(header).toLowerCase().replace(/[^a-z0-9]/g, '') // Normalizar: minúscula, sin espacios ni caracteres especiales
         );
 
-        // Mapear los campos de BD requeridos a la columna real en el archivo
-        const requiredColumnMap = {};
+        // Mapear los campos de BD (requeridos + opcionales con mapeo) a la columna real en el archivo
+        const columnMap = {}; // Usaremos un mapa general ahora
         const missingRequiredFields = [];
 
+        // Verificar que al menos los campos requeridos tengan una columna mapeable
         requiredFields.forEach(requiredField => {
             const normalizedExpectedHeader = String(fieldMap[requiredField]).toLowerCase().replace(/[^a-z0-9]/g, '');
             const columnIndex = normalizedActualHeaders.indexOf(normalizedExpectedHeader);
 
             if (columnIndex !== -1) {
-                // Encontramos la columna. Guardamos el encabezado REAL del archivo (para acceder a los datos de la fila)
-                 requiredColumnMap[requiredField] = actualHeaders[columnIndex];
+                // Encontramos la columna para un campo REQUERIDO. Guardamos el encabezado REAL.
+                 columnMap[requiredField] = actualHeaders[columnIndex];
             } else {
-                missingRequiredFields.push(requiredField); // El campo requerido no tiene una columna mapeable en el archivo
+                missingRequiredFields.push(requiredField); // Falta la columna para un campo REQUERIDO
             }
         });
 
@@ -1053,12 +1054,28 @@ const uploadBulkProductsPlain = async (req, res) => {
             // Informar al usuario sobre los campos de BD que faltan (basado en el mapeo)
             return res.status(400).json({
                 success: false,
-                message: `Faltan campos requeridos (no se encontraron columnas correspondientes en la plantilla): ${missingRequiredFields.join(', ')}`
+                message: `Faltan columnas requeridas en la plantilla: ${missingRequiredFields.join(', ')}`
             });
         }
 
-        console.log('[Bulk Upload Plain] Headers mapped successfully.');
-        console.log('Required Column Map:', requiredColumnMap);
+        // Ahora, mapear también los campos opcionales que tienen una columna en la plantilla y un mapeo definido
+        actualHeaders.forEach(actualHeader => {
+            const normalizedActualHeader = String(actualHeader).toLowerCase().replace(/[^a-z0-9]/g, '');
+             // Buscar qué campo de BD corresponde a este encabezado normalizado en el fieldMap
+             const dbField = Object.keys(fieldMap).find(key =>
+                 String(fieldMap[key]).toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedActualHeader
+             );
+
+            // Si encontramos un mapeo y no es un campo requerido que ya mapeamos (para evitar duplicados),
+            // o si es un campo opcional, lo añadimos al columnMap.
+            // La condición anterior ya añadió los requeridos, este bucle añade los opcionales mapeados que existen en el archivo.
+            // Simplificamos: si el encabezado actual mapea a un campo en fieldMap y aún no está en columnMap (ya que requeridos fueron añadidos), lo agregamos.
+             if (dbField && !columnMap[dbField]) {
+                 columnMap[dbField] = actualHeader; // Usar el encabezado real del archivo
+             }
+        });
+
+        console.log('[Bulk Upload Plain] Headers mapped successfully. Full Column Map:', columnMap);
 
         // Procesar filas de datos
         const results = [];
@@ -1069,32 +1086,40 @@ const uploadBulkProductsPlain = async (req, res) => {
             if (!row) continue; // Saltar filas completamente vacías si las hubiera
 
             const productData = {};
-            productData.dimensiones = {}; // Inicializar subdocumento dimensiones
+            productData.dimensiones = {}; // Inicializar subdocumento dimensiones (si aplica)
+            let hasDimensiones = false; // Bandera para saber si se agregaron dimensiones
 
-            // Llenar productData usando el mapeo de columnas requeridas
-            requiredFields.forEach(requiredField => {
-                 const actualHeader = requiredColumnMap[requiredField];
-                 const value = row[actualHeader]; // Obtener el valor usando el encabezado real de la columna
+            // Llenar productData usando el mapa COMPLETO de columnas (requeridas y opcionales mapeadas)
+            for (const dbField in columnMap) {
+                if (columnMap.hasOwnProperty(dbField)) {
+                    const actualHeader = columnMap[dbField];
+                    const value = row[actualHeader]; // Obtener el valor usando el encabezado real de la columna
 
-                 // Manejar campos anidados como dimensiones y aplicar conversiones
-                 if (requiredField.startsWith('dimensiones.')) {
-                     const dimensionField = requiredField.split('.')[1]; // ej: largo_cm
-                     const mmValue = parseNumberValue(value); // Usar helper existente para parsear número
-                     if (mmValue !== null) {
-                         // Convertir mm a cm
-                         productData.dimensiones[dimensionField] = mmValue / 10;
-                     } else {
-                         productData.dimensiones[dimensionField] = null; // O undefined
-                     }
-                 } else {
-                     // Campos de nivel superior
-                     productData[requiredField] = value;
-                 }
-            });
+                    // Manejar campos anidados como dimensiones y aplicar conversiones
+                    if (dbField.startsWith('dimensiones.')) {
+                        const dimensionField = dbField.split('.')[1]; // ej: largo_cm
+                        const mmValue = parseNumberValue(value); // Usar helper existente para parsear número
+                        if (mmValue !== null) {
+                            // Convertir mm a cm
+                            productData.dimensiones[dimensionField] = mmValue / 10;
+                            hasDimensiones = true;
+                        } else {
+                            // Si el valor es nulo, guardarlo como null en el subdocumento si el campo existe en el mapeo
+                             if (columnMap[`dimensiones.${dimensionField}`]) {
+                                productData.dimensiones[dimensionField] = null; 
+                             }
+                        }
+                    } else {
+                        // Campos de nivel superior
+                        productData[dbField] = value;
+                    }
+                }
+            }
 
-            // --- Logging: productData antes de crear en DB ---
-            console.log(`[Bulk Upload Plain] Processing row ${i + 1}:`, { code: productData.Codigo_Producto, modelo: productData.modelo, categoria: productData.categoria, dimensiones: productData.dimensiones });
-            // Fin Logging ---
+            // Si no se agregaron campos de dimensiones, eliminar el subdocumento vacío
+            if (!hasDimensiones && Object.keys(productData.dimensiones).length === 0) {
+                delete productData.dimensiones;
+            }
 
             // --- Validar que los campos requeridos (mapeados) tienen valor ---
             const missingRequiredValues = requiredFields.filter(requiredField => {
@@ -1112,28 +1137,29 @@ const uploadBulkProductsPlain = async (req, res) => {
                  hasErrors = true;
                  results.push({
                      // Intentar obtener el Codigo_Producto o usar N/A si no está presente
-                     code: productData.Codigo_Producto || row[requiredColumnMap['Codigo_Producto']] || 'N/A',
+                     code: productData.Codigo_Producto || row[columnMap['Codigo_Producto']] || 'N/A',
                      status: 'error',
-                     message: `Faltan valores para los campos requeridos (basado en mapeo): ${missingRequiredValues.join(', ')}`
+                     message: `Faltan valores para los campos requeridos: ${missingRequiredValues.join(', ')}`
                  });
                  console.error(`[Bulk Upload Plain] Row ${i + 1} missing required values:`, missingRequiredValues);
                  continue; // Saltar a la siguiente fila si faltan valores requeridos
             }
 
+            // --- Logging: productData antes de crear/actualizar en DB ---
+            console.log(`[Bulk Upload Plain] Processing row ${i + 1}. Data prepared:`, productData);
+            // Fin Logging ---
+
             try {
-                // Asegurar que Codigo_Producto sea string (si no lo es ya por sheet_to_json)
+                // Asegurar que Codigo_Producto sea string y trim() si es necesario
                  if (productData.Codigo_Producto !== undefined && productData.Codigo_Producto !== null) {
-                     productData.Codigo_Producto = String(productData.Codigo_Producto);
+                     productData.Codigo_Producto = String(productData.Codigo_Producto).trim();
+                 } else {
+                     // Esto no debería ocurrir si Codigo_Producto es requerido y la validación pasó, pero como seguridad
+                      throw new Error('Codigo_Producto es requerido y no se pudo obtener después del mapeo.');
                  }
 
-                // Opcional: Limpiar campos de dimensiones si el subdocumento quedó vacío (ej. si todas las dimensiones eran null)
-                 if (productData.dimensiones && Object.keys(productData.dimensiones).length === 0) {
-                     delete productData.dimensiones;
-                 }
-
-                // Crear producto en la base de datos
-                // createProductInDB debe manejar la validación del esquema completo de Producto
-                console.log('[Bulk Upload Plain] Creating product in DB:', productData.Codigo_Producto);
+                // Intentar crear el producto
+                console.log('[Bulk Upload Plain] Attempting to create product:', productData.Codigo_Producto);
                 const newProduct = await createProductInDB(productData);
                 console.log('[Bulk Upload Plain] Product created:', newProduct.Codigo_Producto);
                 results.push({
@@ -1146,11 +1172,14 @@ const uploadBulkProductsPlain = async (req, res) => {
                 if (error.message && error.message.includes('ya existe')) {
                      console.warn(`[Bulk Upload Plain] Product with code ${productData.Codigo_Producto} already exists. Attempting to update...`);
                      try {
-                         // Eliminar _id del productData si existe, ya que no se actualiza
+                         // Eliminar campos que no deben actualizarse (como _id, y Codigo_Producto si updateProductInDB no lo permite)
                          const updateData = { ...productData };
                          delete updateData._id;
+                         // Dependiendo de updateProductInDB, puede que necesites eliminar Codigo_Producto de updateData
+                         // delete updateData.Codigo_Producto;
 
                          const updatedProduct = await updateProductInDB(productData.Codigo_Producto, updateData);
+
                          if (updatedProduct) {
                               console.log('[Bulk Upload Plain] Product updated:', updatedProduct.Codigo_Producto);
                               results.push({
@@ -1165,7 +1194,7 @@ const uploadBulkProductsPlain = async (req, res) => {
                               results.push({
                                   code: productData.Codigo_Producto,
                                   status: 'error',
-                                  message: 'Error al actualizar producto existente (updateProductInDB falló).',
+                                  message: 'Error al actualizar producto existente (updateProductInDB falló o no encontró el producto).',
                               });
                          }
                      } catch (updateError) {
@@ -1181,12 +1210,12 @@ const uploadBulkProductsPlain = async (req, res) => {
                 } else {
                      // Otro tipo de error durante la creación
                      hasErrors = true;
-                     console.error('[Bulk Upload Plain] Error creating/processing product:', productData.Codigo_Producto || row[requiredColumnMap['Codigo_Producto']] || 'N/A', error);
+                     console.error('[Bulk Upload Plain] Error creating product:', productData.Codigo_Producto || row[columnMap['Codigo_Producto']] || 'N/A', error);
                      results.push({
                          // Intentar obtener el Codigo_Producto mapeado o usar N/A
-                         code: productData.Codigo_Producto || row[requiredColumnMap['Codigo_Producto']] || 'N/A',
+                         code: productData.Codigo_Producto || row[columnMap['Codigo_Producto']] || 'N/A',
                          status: 'error',
-                         message: `Error al crear/procesar producto ${error.message}`
+                         message: `Error al crear producto: ${error.message}`
                      });
                 }
             }
