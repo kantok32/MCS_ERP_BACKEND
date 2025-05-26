@@ -1125,14 +1125,53 @@ const uploadBulkProductsPlain = async (req, res) => {
                     message: 'Producto creado exitosamente.'
                 });
             } catch (error) {
-                hasErrors = true;
-                console.error('[Bulk Upload Plain] Error creating/processing product:', productData.Codigo_Producto || row[requiredColumnMap['Codigo_Producto']] || 'N/A', error);
-                results.push({
-                    // Intentar obtener el Codigo_Producto mapeado o usar N/A
-                    code: productData.Codigo_Producto || row[requiredColumnMap['Codigo_Producto']] || 'N/A',
-                    status: 'error',
-                    message: `Error al crear/procesar producto ${error.message}`
-                });
+                // Si el error indica que el producto ya existe, intentar actualizar en su lugar
+                if (error.message && error.message.includes('ya existe')) {
+                     console.warn(`[Bulk Upload Plain] Product with code ${productData.Codigo_Producto} already exists. Attempting to update...`);
+                     try {
+                         // Eliminar _id del productData si existe, ya que no se actualiza
+                         const updateData = { ...productData };
+                         delete updateData._id;
+
+                         const updatedProduct = await updateProductInDB(productData.Codigo_Producto, updateData);
+                         if (updatedProduct) {
+                              console.log('[Bulk Upload Plain] Product updated:', updatedProduct.Codigo_Producto);
+                              results.push({
+                                  code: updatedProduct.Codigo_Producto,
+                                  status: 'success',
+                                  message: 'Producto actualizado exitosamente.'
+                              });
+                         } else {
+                             // Esto podría pasar si el producto existía pero desapareció o updateProductInDB falló silenciosamente
+                              hasErrors = true;
+                              console.error(`[Bulk Upload Plain] Failed to update product ${productData.Codigo_Producto} after 'already exists' error. updateProductInDB returned null/undefined.`);
+                              results.push({
+                                  code: productData.Codigo_Producto,
+                                  status: 'error',
+                                  message: 'Error al actualizar producto existente (updateProductInDB falló).',
+                              });
+                         }
+                     } catch (updateError) {
+                         // Error durante el intento de actualización
+                         hasErrors = true;
+                         console.error(`[Bulk Upload Plain] Error updating product ${productData.Codigo_Producto}:`, updateError);
+                         results.push({
+                              code: productData.Codigo_Producto,
+                              status: 'error',
+                              message: `Error al actualizar producto: ${updateError.message}`,
+                         });
+                     }
+                } else {
+                     // Otro tipo de error durante la creación
+                     hasErrors = true;
+                     console.error('[Bulk Upload Plain] Error creating/processing product:', productData.Codigo_Producto || row[requiredColumnMap['Codigo_Producto']] || 'N/A', error);
+                     results.push({
+                         // Intentar obtener el Codigo_Producto mapeado o usar N/A
+                         code: productData.Codigo_Producto || row[requiredColumnMap['Codigo_Producto']] || 'N/A',
+                         status: 'error',
+                         message: `Error al crear/procesar producto ${error.message}`
+                     });
+                }
             }
         }
 
