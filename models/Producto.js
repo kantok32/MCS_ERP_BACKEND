@@ -77,6 +77,16 @@ const productoSchema = new mongoose.Schema({
     // <<<------------------------------>>>
      // Campos JSON embebidos originales (mantener por compatibilidad con carga masiva si aún se usan)
     dimensiones_json: { type: mongoose.Schema.Types.Mixed },
+
+    // <<<--- NUEVO CAMPO: Código del producto principal asignado (para opcionales) --->>>
+    asignado_a_codigo_principal: {
+        type: String,
+        required: false,
+        default: null,
+        trim: true // Opcional: limpiar espacios en blanco
+    },
+    // <<<------------------------------------------------------------------------->>>
+
     especificaciones_tecnicas_json: { type: mongoose.Schema.Types.Mixed },
     opciones_json: { type: mongoose.Schema.Types.Mixed },
     metadata_json: { type: mongoose.Schema.Types.Mixed },
