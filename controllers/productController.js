@@ -437,34 +437,38 @@ const getOptionalProducts = async (req, res) => {
     }
 
     // Validaciones de datos del producto principal
-    if (!productoPrincipal.caracteristicas || !productoPrincipal.caracteristicas.modelo) {
+    // Priorizar el parámetro 'modelo' de la query string si está presente
+    const modeloPrincipalFromQuery = req.query.modelo;
+    let modeloPrincipal = null;
+
+    if (modeloPrincipalFromQuery) {
+        console.log('[getOptionalProducts] Using model from query string:', modeloPrincipalFromQuery);
+        modeloPrincipal = modeloPrincipalFromQuery;
+    } else {
+        // Si no hay parámetro en la query, intentar obtener del producto principal (cache/DB)
+        console.log('[getOptionalProducts] Model not in query string, attempting to get from product principal...');
+        modeloPrincipal = productoPrincipal.caracteristicas?.modelo || productoPrincipal.modelo;
+    }
+
+    if (!modeloPrincipal) {
         return res.status(400).json({
             success: false,
-            error: 'Datos incompletos en producto principal',
-            message: 'El producto principal no tiene "caracteristicas.modelo" definido.'
+            error: 'Datos incompletos o parámetro modelo faltante',
+            message: 'Se requiere el campo modelo del producto principal (en la BD o como parámetro en la URL).'
         });
     }
-    if (!productoPrincipal.producto) { // Necesario para el nuevo filtro de tipo de chipeadora
+
+    // Ahora usamos la variable modeloPrincipal para el resto de la lógica
+    const modeloPrincipalString = String(modeloPrincipal).toLowerCase();
+
+    // Validar que el tipo de producto (productoPrincipal.producto) esté definido
+    if (!productoPrincipal.producto) {
         return res.status(400).json({
             success: false,
             error: 'Datos incompletos en producto principal',
             message: 'El producto principal no tiene el campo "producto" definido.'
         });
     }
-
-    // Verificar si el modelo existe ya sea en caracteristicas.modelo o en el nivel superior del documento
-    const modeloPrincipal = productoPrincipal.caracteristicas?.modelo || productoPrincipal.modelo;
-
-    if (!modeloPrincipal) {
-        return res.status(400).json({
-            success: false,
-            error: 'Datos incompletos en producto principal',
-            message: 'El producto principal no tiene el campo modelo definido (ni en caracteristicas.modelo ni a nivel superior).'
-        });
-    }
-
-    // Ahora usamos la variable modeloPrincipal para el resto de la lógica
-    const modeloPrincipalString = String(modeloPrincipal).toLowerCase();
 
     const tipoChipeadoraPrincipal = productoPrincipal.producto.toLowerCase(); // Ej: "chipeadora motor", "chipeadora pto"
 
