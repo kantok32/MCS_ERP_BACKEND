@@ -1018,7 +1018,7 @@ const uploadBulkProductsPlain = async (req, res) => {
             'dimensiones.largo_cm': 'largo_mm', // Necesita conversión de mm a cm
             'dimensiones.ancho_cm': 'ancho_mm', // Necesita conversión de mm a cm
             'dimensiones.alto_cm': 'alto_mm',   // Necesita conversión de mm a cm
-            'asignado_a_codigo_principal': 'equipo u opcional', // Add mapping for the "equipo u opcional" column
+            'asignado_a_codigo_principal': 'asignacion', // Map to the correct column header
             // Agrega aquí otros campos de DB y su forma normalizada en la plantilla si es necesario
         };
 
@@ -1083,6 +1083,10 @@ const uploadBulkProductsPlain = async (req, res) => {
         console.log('[Bulk Upload Plain] Found "equipo u opcional" at index:', equipoOpcionalIndex);
         if (equipoOpcionalIndex !== -1) {
             console.log('[Bulk Upload Plain] Actual header for "equipo u opcional":', actualHeaders[equipoOpcionalIndex]);
+            console.log('[Bulk Upload Plain] First row value for "equipo u opcional":', data[0][actualHeaders[equipoOpcionalIndex]]);
+        } else {
+            console.log('[Bulk Upload Plain] WARNING: Could not find "equipo u opcional" column in headers');
+            console.log('[Bulk Upload Plain] Available headers:', actualHeaders);
         }
 
         // Procesar filas de datos
