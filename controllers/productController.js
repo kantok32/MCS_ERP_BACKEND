@@ -1077,6 +1077,13 @@ const uploadBulkProductsPlain = async (req, res) => {
         });
 
         console.log('[Bulk Upload Plain] Headers mapped successfully. Full Column Map:', columnMap);
+        console.log('[Bulk Upload Plain] Normalized actual headers:', normalizedActualHeaders);
+        console.log('[Bulk Upload Plain] Looking for "equipo u opcional" column...');
+        const equipoOpcionalIndex = normalizedActualHeaders.indexOf('equipouopcional');
+        console.log('[Bulk Upload Plain] Found "equipo u opcional" at index:', equipoOpcionalIndex);
+        if (equipoOpcionalIndex !== -1) {
+            console.log('[Bulk Upload Plain] Actual header for "equipo u opcional":', actualHeaders[equipoOpcionalIndex]);
+        }
 
         // Procesar filas de datos
         const results = [];
@@ -1111,6 +1118,7 @@ const uploadBulkProductsPlain = async (req, res) => {
                              }
                         }
                     } else if (dbField === 'asignado_a_codigo_principal') { // Explicitly handle the new field
+                        console.log(`[Bulk Upload Plain] Processing asignado_a_codigo_principal for row ${i + 1}. Value:`, value);
                         productData.asignado_a_codigo_principal = value;
                     } else {
                         // Campos de nivel superior
