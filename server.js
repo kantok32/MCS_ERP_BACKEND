@@ -36,7 +36,7 @@ console.log('================================================\n');
 // Configuración de Express
 const app = express();
 
-// Configuración de CORS para permitir cualquier origen (para depuración)
+// Configuración básica de CORS para permitir cualquier origen
 app.use(cors());
 
 // Middleware para parsear JSON y URL-encoded
@@ -52,9 +52,6 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Server is running' });
 });
-
-// Middleware para manejar OPTIONS requests
-app.options('*', cors());
 
 console.log('[Server] Registering routes...');
 // Configuración de rutas
