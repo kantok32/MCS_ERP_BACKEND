@@ -80,9 +80,8 @@ const productoSchema = new mongoose.Schema({
 
     // <<<--- NUEVO CAMPO: Código del producto principal asignado (para opcionales) --->>>
     asignado_a_codigo_principal: {
-        type: String,
+        type: [String],
         required: false,
-        default: null,
         trim: true // Opcional: limpiar espacios en blanco
     },
     // <<<------------------------------------------------------------------------->>>

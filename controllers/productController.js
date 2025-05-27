@@ -463,9 +463,11 @@ const getOptionalProducts = async (req, res) => {
         Codigo_Producto: { $ne: codigoPrincipal }, // Excluir el producto principal
         categoria: 'opcional', // Filtrar por productos marcados como opcionales por categoría
         // Filtrar por coincidencia EXACTA del campo asignado_a_codigo_principal con el modelo principal
-        asignado_a_codigo_principal: modeloPrincipal
+        // asignado_a_codigo_principal: modeloPrincipal
         // Si se necesitara insensibilidad a mayúsculas/minúsculas:
         // asignado_a_codigo_principal: { $regex: new RegExp('^' + modeloPrincipal + '$', 'i') }
+        // Nueva lógica para buscar si CUALQUIERA de los modelos principales está incluido en el ARRAY asignado_a_codigo_principal del opcional
+        asignado_a_codigo_principal: { $in: modelosPrincipales }
     };
 
     // Opcional: usar la categoría del principal para un filtro adicional si es necesario
