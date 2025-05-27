@@ -52,6 +52,7 @@ router.post('/cache/reset', productController.resetCache);
 router.put('/code/:codigoProducto', productController.updateProduct);
 router.put('/code/:codigoProducto/toggle-discontinued', productController.toggleProductDiscontinuedStatus);
 router.delete('/cache', productController.clearCache);
+router.delete('/code/:codigoProducto', productController.deleteProductByCode);
 
 // Endpoint para la carga masiva de productos con plantilla PLANA (LEGACY - comentado)
 // router.post('/upload-bulk', upload.single('archivoExcel'), productoCtrl.uploadBulkProducts); 

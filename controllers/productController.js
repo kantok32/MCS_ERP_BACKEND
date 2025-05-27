@@ -1386,6 +1386,42 @@ const uploadTechnicalSpecifications = async (req, res) => {
     }
 };
 
+// @desc    Delete a product by its Codigo_Producto
+// @route   DELETE /api/products/code/:codigoProducto (or just /api/products/:codigo if preferred)
+// @access  Private/Admin
+const deleteProductByCode = asyncHandler(async (req, res) => {
+    const { codigoProducto } = req.params;
+
+    if (!codigoProducto) {
+        return res.status(400).json({
+            success: false,
+            message: 'El código del producto es requerido para la eliminación.'
+        });
+    }
+
+    // Asumimos que tienes una función en mongoDataService para eliminar por código
+    const deleteResult = await deleteProductFromDB(codigoProducto);
+
+    if (!deleteResult || deleteResult.deletedCount === 0) {
+        return res.status(404).json({
+            success: false,
+            message: `Producto con código ${codigoProducto} no encontrado o no se pudo eliminar.`
+        });
+    }
+
+    // Actualizar caché después de la eliminación
+    console.log(`Product with code ${codigoProducto} deleted. Attempting to refresh cache...`);
+    const productsFromDB = await fetchBaseProductsFromDB();
+    cachedProducts = productsFromDB;
+    saveCacheToDisk();
+    console.log('Cache refreshed after product deletion.');
+
+    res.status(200).json({
+        success: true,
+        message: `Producto con código ${codigoProducto} eliminado exitosamente y caché refrescado.`
+    });
+});
+
 // --- Función para inicializar el caché de productos al inicio de la aplicación ---
 async function initializeProductCache() {
   try {
@@ -1453,5 +1489,6 @@ module.exports = {
     calculateCostoProductoFromProfile,
     uploadBulkProductsMatrix,
     uploadBulkProductsPlain,
-    uploadTechnicalSpecifications
+    uploadTechnicalSpecifications,
+    deleteProductByCode
 };
