@@ -458,6 +458,9 @@ const getOptionalProducts = async (req, res) => {
 
     console.log(`[getOptionalProducts] Buscando opcionales para modelo: ${modeloPrincipal}, principal: ${codigoPrincipal}`);
 
+    // Dividir el string de modelos principal por " / " y limpiar espacios
+    const modelosPrincipales = modeloPrincipal.split('/').map(m => m.trim()).filter(m => m !== '');
+
     // Construir la consulta para encontrar opcionales
     const findQuery = {
         Codigo_Producto: { $ne: codigoPrincipal }, // Excluir el producto principal
