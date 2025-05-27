@@ -83,11 +83,11 @@ function calcularCostoProducto({
   // 6. Costos en Origen (USD)
   const costosOrigenUSD = costoOrigenEUR * tipoCambioEurUsdAplicado;
   // 7. Costo Total Flete y Manejos (USD)
-  const costoTotalFleteManejosUSD = costosOrigenUSD + fleteMaritimoUSD + recargosDestinoUSD; // <--- CORRECCIÓN: Usa costosOrigenUSD
+  const costoTotalFleteManejosUSD = fleteMaritimoUSD + recargosDestinoUSD; // <- Solo Flete + Recargos
   // 8. Base para Seguro (CFR Aprox - USD)
   const baseParaSeguroUSD = costoFinalFabricaUSD_EXW + costoTotalFleteManejosUSD;
   // 9. Prima Seguro (USD)
-  const primaSeguroUSD = (baseParaSeguroUSD * 1.1) * tasaSeguroPct; // Usando tasa del perfil (decimal)
+  const primaSeguroUSD = baseParaSeguroUSD * 1.1 * tasaSeguroPct; 
   // 10. Total Transporte y Seguro EXW (USD)
   const totalTransporteSeguroEXW_USD = costoTotalFleteManejosUSD + primaSeguroUSD;
 
@@ -107,8 +107,7 @@ function calcularCostoProducto({
   // 16. Transporte Nacional (USD)
   const transporteNacionalUSD = tipoCambioUsdClpActual !== 0 ? transporteNacionalCLP / tipoCambioUsdClpActual : 0;
   // 17. Precio Neto Compra Base (USD) - Landed Cost
-  // Fórmula según instrucción Excel: CIF + AdValorem + Aduana + Otros + TC(USD/CLP)
-  const precioNetoCompraBaseUSD_LandedCost = valorCIF_USD + derechoAdvaloremUSD + costoAgenteAduanaUSD + gastosPortuariosOtrosUSD + tipoCambioUsdClpActual; // <--- CORRECCIÓN: Aplicando fórmula Excel
+  const precioNetoCompraBaseUSD_LandedCost = valorCIF_USD + totalCostosImportacionDutyFeesUSD + transporteNacionalUSD;
   
   // --- SECCIÓN 5: Conversión a CLP y Margen --- 
   // 18. Tipo Cambio USD/CLP Aplicado
