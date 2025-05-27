@@ -692,9 +692,6 @@ const getProductByCode = asyncHandler(async (req, res) => {
 // @route   PUT /api/products/:id (or /api/products/bycode/:codigo if preferred)
 // @access  Private/Admin
 const updateProduct = asyncHandler(async (req, res) => {
-    console.log('[updateProduct] Request received.');
-    console.log('[updateProduct] req.params:', req.params);
-    console.log('[updateProduct] req.body:', req.body);
     const { codigoProducto } = req.params;
     const updateData = req.body;
 
@@ -708,7 +705,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     // Opcional: Validación más exhaustiva de updateData aquí si es necesario
     // Por ejemplo, verificar que no se intenten pasar campos no permitidos o formatos incorrectos.
 
-    console.log(`[updateProduct] Attempting to update product with Codigo_Producto: ${codigoProducto}`);
+    console.log(`[Controller] Attempting to update product with Codigo_Producto: ${codigoProducto}`);
     const updatedProduct = await updateProductInDB(codigoProducto, updateData);
 
     if (!updatedProduct) {
@@ -716,7 +713,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     }
 
     // Actualizar caché después de la modificación
-    console.log('[updateProduct] Product updated, attempting to refresh cache...');
+    console.log('Product updated, attempting to refresh cache...');
     const productsFromDB = await fetchBaseProductsFromDB();
     cachedProducts = productsFromDB;
     saveCacheToDisk();
