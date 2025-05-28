@@ -458,8 +458,18 @@ const getOptionalProducts = async (req, res) => {
 
     console.log(`[getOptionalProducts] Buscando opcionales para modelo: ${modeloPrincipal}, principal: ${codigoPrincipal}`);
 
-    // Dividir el string de modelos principal por " / " y limpiar espacios
-    const modelosPrincipales = modeloPrincipal.split('/').map(m => m.trim()).filter(m => m !== '');
+    // Dividir el string de modelos principal por " / ", limpiar espacios, y si contiene "-", tomar solo la parte antes del primer "-".
+    const modelosPrincipalesRaw = modeloPrincipal.split('/').map(m => m.trim()).filter(m => m !== '');
+    const modelosPrincipales = modelosPrincipalesRaw.map(modelo => {
+        const index = modelo.indexOf('-');
+        if (index !== -1) {
+            return modelo.substring(0, index).trim();
+        } else {
+            return modelo;
+        }
+    }).filter(modelo => modelo !== ''); // Asegurarse de que no haya strings vacíos después de procesar
+
+    console.log(`[getOptionalProducts] Modelos principales procesados para búsqueda: ${modelosPrincipales.join(', ')}`);
 
     // Construir la consulta para encontrar opcionales
     const findQuery = {
