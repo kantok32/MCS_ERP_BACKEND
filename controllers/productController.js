@@ -470,6 +470,10 @@ const getOptionalProducts = async (req, res) => {
         // Si se necesitara insensibilidad a mayúsculas/minúsculas:
         // asignado_a_codigo_principal: { $regex: new RegExp('^' + modeloPrincipal + '$', 'i') }
         // Nueva lógica para buscar si CUALQUIERA de los modelos principales está incluido en el ARRAY asignado_a_codigo_principal del opcional
+        // Buscar si CUALQUIERA de los elementos en el ARRAY asignado_a_codigo_principal
+        // del opcional está presente en el ARRAY de modelosPrincipales derivados de la query.
+        // Esto manejará tanto si asignado_a_codigo_principal es un solo string (MongoDB $in lo maneja)
+        // o si es un array (MongoDB $in en un array busca intersección).
         asignado_a_codigo_principal: { $in: modelosPrincipales }
     };
 
@@ -1077,7 +1081,18 @@ const uploadBulkProductsPlain = async (req, res) => {
                         }
                     } else if (dbField === 'asignado_a_codigo_principal') { // Explicitly handle the new field
                         console.log(`[Bulk Upload Plain] Processing asignado_a_codigo_principal for row ${i + 1}. Value:`, value);
-                        productData.asignado_a_codigo_principal = value;
+                        // Check if the value is a string and contains '/', then split and trim
+                        if (typeof value === 'string' && value.includes('/')) {
+                            productData.asignado_a_codigo_principal = value.split('/').map(item => item.trim()).filter(item => item !== '');
+                        } else if (value !== null && value !== undefined && String(value).trim() !== '') {
+                            // If it's not a string with '/' but has a non-empty value, store it as a single-element array
+                            productData.asignado_a_codigo_principal = [String(value).trim()];
+                        } else {
+                            // If value is null, undefined, or empty after trim, set to null or undefined as appropriate by schema default
+                             // Mongoose will handle setting to null/undefined based on schema definition if the field is not required
+                             // We can explicitly set to undefined to ensure the field is not included if empty
+                             productData.asignado_a_codigo_principal = undefined;
+                        }
                     } else {
                         // Campos de nivel superior
                         productData[dbField] = value;
