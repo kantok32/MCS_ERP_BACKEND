@@ -40,69 +40,75 @@ const cargarProductosDesdeExcel = async (req, res) => {
         for (const row of data) {
             // Mapeo cuidadoso de Excel a Schema
 
-            // Convertir fechas de Excel si es necesario (Excel almacena fechas como números)
-            let fechaCotizacionExcel = row['fecha cotizacion'];
+            // Convertir fechas de Excel si es necesario
+            let fechaCotizacionExcel = row['fecha_cotizacion']; // Ajustado al nombre de columna
             if (typeof fechaCotizacionExcel === 'number') {
-                // Es un número de serie de fecha de Excel, convertir a objeto Date de JavaScript
-                // El epoch de Excel es 30 de diciembre de 1899 para Windows (25569 días antes del epoch de Unix)
-                // O 1 de enero de 1904 para Mac (24107 días antes del epoch de Unix)
-                // Usaremos el de Windows por ser más común.
                 fechaCotizacionExcel = new Date(Date.UTC(0, 0, fechaCotizacionExcel - 1, 0, 0, 0) - (25569 * 24 * 60 * 60 * 1000));
             } else if (typeof fechaCotizacionExcel === 'string') {
-                // Si es un string, intentar parsearlo. Ajustar el formato si es necesario.
                 const parsedDate = new Date(fechaCotizacionExcel);
                 if (!isNaN(parsedDate.getTime())) {
                     fechaCotizacionExcel = parsedDate;
                 } else {
-                    console.warn(`[Excel Load] No se pudo parsear la fecha '${fechaCotizacionExcel}' para ${row.Codigo_Producto}. Se dejará como undefined.`);
-                    fechaCotizacionExcel = undefined; // o null, o dejar que falle la validación del schema si es requerida
+                    console.warn(`[Excel Load] No se pudo parsear la fecha '${fechaCotizacionExcel}' para ${row.codigo_producto}. Se dejará como undefined.`);
+                    fechaCotizacionExcel = undefined;
                 }
             } else if (fechaCotizacionExcel) {
-                 console.warn(`[Excel Load] Formato de fecha inesperado para '${fechaCotizacionExcel}' para ${row.Codigo_Producto}. Se intentará usar tal cual.`);
+                 console.warn(`[Excel Load] Formato de fecha inesperado para '${fechaCotizacionExcel}' para ${row.codigo_producto}. Se intentará usar tal cual.`);
             }
 
-
             let productoData = {
-                Codigo_Producto: row.Codigo_Producto,
-                // categoria: row.categoria, // 'categoria' a nivel raíz fue eliminada del schema, verificar si aún está en Excel y dónde debe ir.
+                Codigo_Producto: row.codigo_producto, // Ajustado
                 peso_kg: parseFloat(row.peso_kg) || undefined,
                 caracteristicas: {
-                    nombre_del_producto: row.nombre_del_producto,
-                    modelo: row.modelo
+                    nombre_del_producto: row.nombre_producto, // Ajustado
+                    modelo: row.modelo // Ajustado
                 },
                 dimensiones: {
-                    // Asumiendo que el schema espera números para las dimensiones en mm
-                    largo_mm: parseFloat(row.largo_mm || row.largo_m * 1000 || row.largo_cm * 10) || undefined,
-                    ancho_mm: parseFloat(row.ancho_mm || row.ancho_m * 1000 || row.ancho_cm * 10) || undefined,
-                    alto_mm: parseFloat(row.alto_mm || row.alto_m * 1000 || row.alto_cm * 10) || undefined
+                    largo_mm: parseFloat(row.largo_mm) || undefined, // Ajustado
+                    ancho_mm: parseFloat(row.ancho_mm) || undefined, // Ajustado
+                    alto_mm: parseFloat(row.alto_mm) || undefined     // Ajustado
                 },
                 datos_contables: {
-                    costo_fabrica: parseFloat(row['costo fabrica']) || undefined,
-                    divisa_costo: row.divisa_costo || 'EUR', // Tomar del Excel si existe, sino default a EUR
-                    fecha_cotizacion: fechaCotizacionExcel // Usar la fecha procesada
-                    // Asegurarse que otros campos de datos_contables como costo_ano_cotizacion se mapeen si están en Excel
-                    // costo_ano_cotizacion: parseInt(row['costo_ano_cotizacion']) || undefined
+                    costo_fabrica: parseFloat(row['costo fabrica']) || undefined, // Ajustado
+                    divisa_costo: row.divisa_costo || 'EUR', 
+                    fecha_cotizacion: fechaCotizacionExcel
                 },
-                tipo: row.tipo,
-                familia: row.familia,
+                tipo: row.tipo, // Asumiendo que 'tipo' sigue siendo una columna o se maneja de otra forma
+                familia: row.familia, // Asumiendo que 'familia' sigue siendo una columna o se maneja de otra forma
                 proveedor: row.proveedor,
                 procedencia: row.procedencia,
                 nombre_comercial: row.nombre_comercial,
-                descripcion: row.descripcion, 
+                descripcion: row.descripcion, // Ajustado
                 clasificacion_easysystems: row.clasificacion_easysystems,
                 codigo_ea: row.codigo_ea,
-                es_opcional: row.es_opcional === 'TRUE' || row.es_opcional === true || row.es_opcional === 'true',
-                producto: row.producto, // Este es el campo 'tipo de producto' o 'familia de producto' según el Excel
-
-                // Mantener estos si aún son relevantes y están en el Excel y schema
+                producto: row.producto, // Ajustado
                 especificaciones_tecnicas: {}, 
-                metadata: {}, 
-                // Los campos _json podrían ya no ser necesarios si el schema principal maneja los objetos directamente
-                // dimensiones_json: row.dimensiones_json, 
-                // especificaciones_tecnicas_json: row.especificaciones_tecnicas_json,
-                // opciones_json: row.opciones_json,
-                // metadata_json: row.metadata_json,
+                metadata: {},
             };
+
+            // Procesamiento de 'equipo u opcional' y 'asignacion'
+            let esOpcionalDeterminado = false;
+            if (row['equipo u opcional'] && typeof row['equipo u opcional'] === 'string') {
+                esOpcionalDeterminado = row['equipo u opcional'].toLowerCase() === 'opcional';
+            }
+            
+            const asignacionRaw = row.asignacion; // Ajustado
+            let asignaciones = [];
+
+            if (asignacionRaw && typeof asignacionRaw === 'string' && asignacionRaw.trim() !== '') {
+                asignaciones = asignacionRaw.split('/').map(codigo => codigo.trim()).filter(codigo => codigo !== '');
+                if (asignaciones.length > 0) {
+                    productoData.asignado_a_codigo_principal = asignaciones;
+                    // Si tiene asignaciones, implícitamente es opcional, pero respetamos 'equipo u opcional' si es 'equipo'
+                    if (!esOpcionalDeterminado && row['equipo u opcional'] && row['equipo u opcional'].toLowerCase() !== 'equipo'){
+                        esOpcionalDeterminado = true; 
+                    } else if (asignaciones.length > 0 && !(row['equipo u opcional'] && row['equipo u opcional'].toLowerCase() === 'equipo')){
+                        // Si hay asignaciones y 'equipo u opcional' no es 'equipo' (o está vacío), se considera opcional.
+                        esOpcionalDeterminado = true;
+                    }
+                }
+            }
+            productoData.es_opcional = esOpcionalDeterminado;
             
             // Limpiar campos undefined para que no se guarden explícitamente como null a menos que se desee
             Object.keys(productoData).forEach(key => {
@@ -1211,4 +1217,4 @@ module.exports = {
     uploadTechnicalSpecifications, // Nueva función para especificaciones matriciales
     uploadBulkProductsMatrix, // Para la carga general de productos (plantilla general)
     getProductSpecifications,
-}; 
+};
