@@ -467,7 +467,7 @@ const getOptionalProducts = async (req, res) => {
         } else {
             return modelo;
         }
-    }).filter(modelo => modelo !== ''); // Asegurarse de que no haya strings vacíos después de procesar
+    }).filter(modelo => modelo !== '').map(modelo => modelo.toLowerCase()); // Asegurarse de que no haya strings vacíos y convertirlos a minúsculas
 
     console.log(`[getOptionalProducts] Modelos principales procesados para búsqueda: ${modelosPrincipales.join(', ')}`);
 
