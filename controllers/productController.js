@@ -966,6 +966,8 @@ const uploadBulkProductsPlain = async (req, res) => {
         if (data.length > 0) {
              console.log('[Bulk Upload Plain] First row headers (actual):', Object.keys(data[0]));
         }
+        console.log('[Bulk Upload Plain] Actual headers:', Object.keys(data[0]));
+        console.log('[Bulk Upload Plain] Normalized actual headers:', Object.keys(data[0]).map(header => header.toLowerCase().replace(/[^a-z0-9]/g, '')));
         // Fin Logging ---
 
         // --- Mapeo flexible de encabezados de plantilla a nombres de campo de la DB ---
@@ -1063,6 +1065,8 @@ const uploadBulkProductsPlain = async (req, res) => {
             const row = data[i];
             if (!row) continue; // Saltar filas completamente vacías si las hubiera
 
+            console.log(`[Bulk Upload Plain] Processing row ${i + 1}:`, row);
+
             const productData = {};
             productData.dimensiones = {}; // Inicializar subdocumento dimensiones (si aplica)
             let hasDimensiones = false; // Bandera para saber si se agregaron dimensiones
@@ -1072,6 +1076,8 @@ const uploadBulkProductsPlain = async (req, res) => {
                 if (columnMap.hasOwnProperty(dbField)) {
                     const actualHeader = columnMap[dbField];
                     const value = row[actualHeader]; // Obtener el valor usando el encabezado real de la columna
+
+                    console.log(`[Bulk Upload Plain] Row ${i + 1}, Field "${dbField}" (Header "${actualHeader}") raw value:`, value);
 
                     // Manejar campos anidados como dimensiones y aplicar conversiones
                     if (dbField.startsWith('dimensiones.')) {
@@ -1238,6 +1244,9 @@ const uploadBulkProductsPlain = async (req, res) => {
         }
 
         // Enviar respuesta resumen
+        console.log('[Bulk Upload Plain] Processing complete.');
+        console.log('[Bulk Upload Plain] Final results:', results);
+        console.log('[Bulk Upload Plain] Has errors:', hasErrors);
         const status = hasErrors ? 207 : 200;
         res.status(status).json({
             success: true,
@@ -1246,6 +1255,7 @@ const uploadBulkProductsPlain = async (req, res) => {
         });
 
     } catch (error) {
+        console.error('[Bulk Upload Plain] Uncaught error during file processing:', error);
         console.error('Error processing plain template file:', error);
         res.status(500).json({
             success: false,
