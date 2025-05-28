@@ -415,125 +415,115 @@ const getProductDetail = async (req, res) => {
 // @route   GET /api/products/opcionales
 // @access  Public
 const getOptionalProducts = async (req, res) => {
-  try {
-    const { codigo: codigoPrincipal, modelo: modeloPrincipal, categoria } = req.query; // Obtener todos los parámetros necesarios
+    try {
+        const { codigo: codigoPrincipal } = req.query; // Obtener solo el código principal de la query
 
-    // Validar parámetros requeridos
-    if (!codigoPrincipal) {
-      return res.status(400).json({
-        success: false,
-        error: 'Parámetro inválido',
-        message: 'Se requiere el código del producto principal (param: codigo)'
-      });
-    }
-    // Validar que el modelo esté presente
-    if (!modeloPrincipal) {
-        return res.status(400).json({
+        // Validar parámetro requerido
+        if (!codigoPrincipal) {
+            return res.status(400).json({
+                success: false,
+                error: 'Parámetro inválido',
+                message: 'Se requiere el código del producto principal (param: codigo)'
+            });
+        }
+
+        console.log(`[getOptionalProducts] Buscando producto principal con código: ${codigoPrincipal}`);
+
+        // 1. Buscar el producto principal en la base de datos
+        const productoPrincipal = await Producto.findOne({ Codigo_Producto: codigoPrincipal }).lean();
+
+        if (!productoPrincipal) {
+            console.log(`[getOptionalProducts] Producto principal con código ${codigoPrincipal} no encontrado.`);
+            // Si el producto principal no existe, no hay opcionales asociados a él según esta lógica.
+            return res.status(200).json({
+                success: true,
+                data: {
+                    total: 0,
+                    products: [] // Lista vacía porque el principal no existe
+                },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // 2. Obtener el array de asignaciones del producto principal
+        // Asegurarse de que asignado_a_codigo_principal existe y es un array. Si no, tratar como array vacío.
+        const mainProductAssignments = Array.isArray(productoPrincipal.asignado_a_codigo_principal)
+            ? productoPrincipal.asignado_a_codigo_principal.map(item => String(item).trim().toLowerCase()).filter(item => item !== '')
+            : (productoPrincipal.asignado_a_codigo_principal ? [String(productoPrincipal.asignado_a_codigo_principal).trim().toLowerCase()].filter(item => item !== '') : []);
+
+        if (mainProductAssignments.length === 0) {
+            console.log(`[getOptionalProducts] Producto principal ${codigoPrincipal} no tiene asignaciones.`);
+            // Si el principal no tiene asignaciones, no hay opcionales que coincidan.
+            return res.status(200).json({
+                success: true,
+                data: {
+                    total: 0,
+                    products: [] // Lista vacía porque el principal no tiene asignaciones
+                },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        console.log(`[getOptionalProducts] Asignaciones del producto principal ${codigoPrincipal}: ${mainProductAssignments.join(', ')}`);
+
+        // 3. Construir la consulta para encontrar opcionales:
+        //    - Excluir el producto principal.
+        //    - Filtrar por productos marcados como opcionales por categoría.
+        //    - Buscar opcionales cuyo array asignado_a_codigo_principal contenga AL MENOS UN elemento que esté en mainProductAssignments.
+        //    - Realizar la comparación de asignaciones de forma insensible a mayúsculas/minúsculas.
+
+        const findQuery = {
+            Codigo_Producto: { $ne: codigoPrincipal },
+            categoria: 'opcional',
+            // Usar $elemMatch para buscar en el array del opcional
+            // La comparación de asignaciones ya se hizo insensible a mayúsculas/minúsculas
+            // al procesar mainProductAssignments, y asumimos que los valores en DB
+            // también están normalizados o se compararán correctamente por $in en el array.
+            asignado_a_codigo_principal: { $in: mainProductAssignments }
+        };
+
+        const opcionalesFiltrados = await Producto.find(findQuery).lean();
+
+        console.log(`[getOptionalProducts] Encontrados ${opcionalesFiltrados.length} opcionales que coinciden con la consulta.`);
+
+        // Mapear los resultados al formato deseado para el frontend
+        const opcionalesParaFrontend = opcionalesFiltrados.map(op => {
+            const mapped = {
+                // Incluir todos los campos relevantes para el frontend
+                ...op,
+                codigo_producto: op.Codigo_Producto,
+                nombre_del_producto: op.caracteristicas?.nombre_del_producto || op.nombre_del_producto,
+                Descripcion: op.caracteristicas?.descripcion || op.descripcion || op.Descripcion,
+                Modelo: op.caracteristicas?.modelo || op.modelo || op.Modelo,
+                asignado_a_codigo_principal: op.asignado_a_codigo_principal // Asegurar que este campo se incluye
+            };
+            // Eliminar el campo original de MongoDB si es diferente y ya mapeamos a codigo_producto
+            if (op.hasOwnProperty('Codigo_Producto') && mapped.codigo_producto !== undefined) {
+                delete mapped.Codigo_Producto; // Eliminar si ya está en codigo_producto
+            }
+            // Asegurarse de que _id no se envíe al frontend a menos que sea necesario
+            delete mapped._id;
+            return mapped;
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Opcionales encontrados',
+            data: {
+                total: opcionalesParaFrontend.length,
+                products: opcionalesParaFrontend
+            },
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Error al obtener productos opcionales:', error);
+        return res.status(500).json({
             success: false,
-            error: 'Parámetro inválido',
-            message: 'Se requiere el modelo del producto principal (param: modelo)'
+            error: 'Error al obtener productos opcionales',
+            message: (error instanceof Error) ? error.message : String(error),
         });
     }
-
-    // No necesitamos buscar el producto principal en la base de datos a menos que necesitemos sus
-    // detalles para la respuesta. La lógica requerida solo usa los parámetros de la query.
-    // Mantendremos la búsqueda por ahora por si se usa más adelante o para validación contextual.
-    const productoPrincipal = await Producto.findOne({ Codigo_Producto: codigoPrincipal }).lean();
-
-    if (!productoPrincipal) {
-      // Si el producto principal no existe, no hay opcionales asociados a él en teoría.
-      // Podríamos devolver un 404 para el principal, o un 200 con lista vacía de opcionales.
-      // De acuerdo a la instrucción "Si no se encuentran opcionales... respuesta debe indicar éxito... con array products vacío",
-      // asumiremos que si el principal no existe, simplemente no hay opcionales asociados.
-      console.log(`[getOptionalProducts] Producto principal con código ${codigoPrincipal} no encontrado.`);
-       return res.status(200).json({
-          success: true,
-          data: {
-            total: 0,
-            products: [] // Lista vacía porque el principal no existe
-          },
-          timestamp: new Date().toISOString()
-       });
-    }
-
-    console.log(`[getOptionalProducts] Buscando opcionales para modelo: ${modeloPrincipal}, principal: ${codigoPrincipal}`);
-
-    // Dividir el string de modelos principal por " / ", limpiar espacios, y si contiene "-", tomar solo la parte antes del primer "-".
-    const modelosPrincipalesRaw = modeloPrincipal.split('/').map(m => m.trim()).filter(m => m !== '');
-    const modelosPrincipales = modelosPrincipalesRaw.map(modelo => {
-        const index = modelo.indexOf('-');
-        if (index !== -1) {
-            return modelo.substring(0, index).trim();
-        } else {
-            return modelo;
-        }
-    }).filter(modelo => modelo !== '').map(modelo => modelo.toLowerCase()); // Asegurarse de que no haya strings vacíos y convertirlos a minúsculas
-
-    console.log(`[getOptionalProducts] Modelos principales procesados para búsqueda: ${modelosPrincipales.join(', ')}`);
-
-    // Construir la consulta para encontrar opcionales
-    const findQuery = {
-        Codigo_Producto: { $ne: codigoPrincipal }, // Excluir el producto principal
-        categoria: 'opcional', // Filtrar por productos marcados como opcionales por categoría
-        // Filtrar por coincidencia EXACTA del campo asignado_a_codigo_principal con el modelo principal
-        // asignado_a_codigo_principal: modeloPrincipal
-        // Si se necesitara insensibilidad a mayúsculas/minúsculas:
-        // asignado_a_codigo_principal: { $regex: new RegExp('^' + modeloPrincipal + '$', 'i') }
-        // Nueva lógica para buscar si CUALQUIERA de los modelos principales está incluido en el ARRAY asignado_a_codigo_principal del opcional
-        // Buscar si CUALQUIERA de los elementos en el ARRAY asignado_a_codigo_principal
-        // del opcional está presente en el ARRAY de modelosPrincipales derivados de la query.
-        // Esto manejará tanto si asignado_a_codigo_principal es un solo string (MongoDB $in lo maneja)
-        // o si es un array (MongoDB $in en un array busca intersección).
-        asignado_a_codigo_principal: { $in: modelosPrincipales }
-    };
-
-    // Opcional: usar la categoría del principal para un filtro adicional si es necesario
-    // if (categoria) {
-    //     findQuery.someOtherFieldThatMatchesCategoria = categoria; // Reemplazar someOtherFieldThatMatchesCategoria
-    // }
-
-    const opcionalesFiltrados = await Producto.find(findQuery).lean();
-
-    console.log(`[getOptionalProducts] Encontrados ${opcionalesFiltrados.length} opcionales que coinciden con la consulta.`);
-
-    // Mapear los resultados al formato deseado para el frontend
-    const opcionalesParaFrontend = opcionalesFiltrados.map(op => {
-      const mapped = {
-        // Incluir todos los campos relevantes para el frontend
-        ...op,
-        codigo_producto: op.Codigo_Producto,
-        nombre_del_producto: op.caracteristicas?.nombre_del_producto || op.nombre_del_producto,
-        Descripcion: op.caracteristicas?.descripcion || op.descripcion || op.Descripcion,
-        Modelo: op.caracteristicas?.modelo || op.modelo || op.Modelo,
-        asignado_a_codigo_principal: op.asignado_a_codigo_principal // Asegurar que este campo se incluye
-      };
-      // Eliminar el campo original de MongoDB si es diferente y ya mapeamos a codigo_producto
-      if (op.hasOwnProperty('Codigo_Producto') && mapped.codigo_producto !== undefined) {
-        delete mapped.Codigo_Producto; // Eliminar si ya está en codigo_producto
-      }
-       // Asegurarse de que _id no se envíe al frontend a menos que sea necesario
-       delete mapped._id;
-      return mapped;
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Opcionales encontrados',
-      data: {
-        total: opcionalesParaFrontend.length,
-        products: opcionalesParaFrontend
-      },
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Error al obtener productos opcionales:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Error al obtener productos opcionales',
-      message: (error instanceof Error) ? error.message : String(error),
-    });
-  }
 };
 
 // @desc    Get raw optional products (containing "opcional" in name)
