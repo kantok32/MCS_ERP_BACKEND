@@ -1102,8 +1102,19 @@ const uploadBulkProductsPlain = async (req, res) => {
                              productData.asignado_a_codigo_principal = undefined;
                         }
                     } else {
-                        // Campos de nivel superior
-                        productData[dbField] = value;
+                        // Convertir campos textuales a minúsculas si no son nulos o indefinidos
+                        if (typeof value === 'string' && value !== null && value !== undefined && value.trim() !== '') {
+                            // Aplicar a campos específicos que queremos en minúsculas
+                            const fieldsToLowerCase = ['nombre_del_producto', 'modelo', 'categoria', 'producto', 'descripcion'];
+                            if (fieldsToLowerCase.includes(dbField)) {
+                                productData[dbField] = value.toLowerCase();
+                            } else {
+                                productData[dbField] = value;
+                            }
+                        } else {
+                             // Asignar directamente si no es un string o está vacío/nulo
+                            productData[dbField] = value;
+                        }
                     }
                 }
             }
