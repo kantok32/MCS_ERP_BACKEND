@@ -35,7 +35,7 @@ router.get('/download-template', (req, res) => {
     res.download(filePath);
 });
 router.get('/download-specifications-template', (req, res) => {
-    const filePath = path.join(__dirname, '../Plantilla_Especificaciones.xlsx');
+    const filePath = path.join(__dirname, '../Plantilla_Carga_Especificaciones.xlsx');
     res.download(filePath);
 });
 
