@@ -465,6 +465,7 @@ const getOptionalProducts = async (req, res) => {
         }
 
         console.log(`[getOptionalProducts] Asignaciones del producto principal ${codigoPrincipal}: ${mainProductAssignments.join(', ')}`);
+        console.log('[getOptionalProducts] Querying with mainProductAssignments:', mainProductAssignments);
 
         // 3. Construir la consulta para encontrar opcionales:
         //    - Excluir el producto principal.
@@ -481,10 +482,17 @@ const getOptionalProducts = async (req, res) => {
             // también están normalizados o se compararán correctamente por $in en el array.
             asignado_a_codigo_principal: { $in: mainProductAssignments }
         };
+        console.log('[getOptionalProducts] Constructed findQuery:', JSON.stringify(findQuery, null, 2));
 
         const opcionalesFiltrados = await Producto.find(findQuery).lean();
 
         console.log(`[getOptionalProducts] Encontrados ${opcionalesFiltrados.length} opcionales que coinciden con la consulta.`);
+
+        if (opcionalesFiltrados.length === 0) {
+            console.log('[getOptionalProducts] No matching optional products found for query:', JSON.stringify(findQuery, null, 2));
+        } else {
+             console.log('[getOptionalProducts] Found optional products (first 5):', opcionalesFiltrados.slice(0, 5).map(p => p.Codigo_Producto).join(', ') + (opcionalesFiltrados.length > 5 ? '...' : ''));
+        }
 
         // Mapear los resultados al formato deseado para el frontend
         const opcionalesParaFrontend = opcionalesFiltrados.map(op => {
