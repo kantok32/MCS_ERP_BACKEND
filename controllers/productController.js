@@ -1091,10 +1091,10 @@ const uploadBulkProductsPlain = async (req, res) => {
                         console.log(`[Bulk Upload Plain] Processing asignado_a_codigo_principal for row ${i + 1}. Value:`, value);
                         // Check if the value is a string and contains '/', then split and trim
                         if (typeof value === 'string' && value.includes('/')) {
-                            productData.asignado_a_codigo_principal = value.split('/').map(item => item.trim()).filter(item => item !== '');
+                            productData.asignado_a_codigo_principal = value.split('/').map(item => item.trim().toLowerCase()).filter(item => item !== '');
                         } else if (value !== null && value !== undefined && String(value).trim() !== '') {
                             // If it's not a string with '/' but has a non-empty value, store it as a single-element array
-                            productData.asignado_a_codigo_principal = [String(value).trim()];
+                            productData.asignado_a_codigo_principal = [String(value).trim().toLowerCase()];
                         } else {
                             // If value is null, undefined, or empty after trim, set to null or undefined as appropriate by schema default
                              // Mongoose will handle setting to null/undefined based on schema definition if the field is not required
