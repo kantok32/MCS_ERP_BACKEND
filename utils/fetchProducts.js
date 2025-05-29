@@ -234,6 +234,7 @@ const uploadTechnicalSpecifications = asyncHandler(async (req, res) => {
 
         // Asumir que la primera fila contiene los códigos de producto
         const headerRow = dataAoA_full[0];
+        console.log('[Bulk Upload Specs DEBUG] Raw headerRow from Excel:', JSON.stringify(headerRow)); // DEBUG LINE
         // Extraer códigos de producto a partir de la segunda columna (índice 1)
         const productCodes = headerRow.slice(1)
             .map(code => getSafeCellValue(code)) // Usar helper para limpieza inicial (trim, null for empty)
