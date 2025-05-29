@@ -1323,31 +1323,11 @@ const uploadTechnicalSpecifications = async (req, res) => {
             // --- Construir un ARRAY ordenado de especificaciones ---
             const technicalSpecificationsArray = [];
             for (let j = 0; j < specNames.length; j++) {
-                const specName = String(specNames[j]).trim();
                 const specDataRowIndex = j + 1;
                 const cellValue = (data[specDataRowIndex] && data[specDataRowIndex][productDataColumnIndex] !== undefined) 
                     ? data[specDataRowIndex][productDataColumnIndex] 
                     : null;
-                // Detectar títulos (todas las celdas de productos vacías)
-                const isTitle = productCodes.every(code => {
-                    const colIndex = productCodes.indexOf(code) + 1;
-                    return data[specDataRowIndex][colIndex] === null || 
-                           data[specDataRowIndex][colIndex] === undefined ||
-                           data[specDataRowIndex][colIndex] === '';
-                });
-                // Generar clave única
-                const clave = specName
-                    .toLowerCase()
-                    .replace(/\s+/g, '_')
-                    .replace(/[^\w_áéíóúñ]/gi, '');
-                // Crear objeto con estructura completa
-                technicalSpecificationsArray.push({
-                    nombre: specName,
-                    clave: clave,
-                    tipo: isTitle ? 'titulo' : 'caracteristica',
-                    path: isTitle ? '' : `especificaciones.${clave}`,
-                    valor: isTitle ? null : cellValue
-                });
+                technicalSpecificationsArray.push(cellValue);
             }
             // Actualizar el ARRAY completo en la base de datos
             const updateObject = {
