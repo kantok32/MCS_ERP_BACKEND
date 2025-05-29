@@ -1269,167 +1269,184 @@ const uploadBulkProductsPlain = async (req, res) => {
 // @desc    Upload technical specifications from a matrix template
 // @route   POST /api/products/upload-specifications
 // @access  Private/Admin (assuming)
-const uploadTechnicalSpecifications = async (req, res) => {
+const uploadTechnicalSpecifications = asyncHandler(async (req, res) => {
     console.log('[Bulk Upload Specs] Request received for technical specifications update.');
-    
-    // Verificar si se subió un archivo
+
     if (!req.file) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'No se subió ningún archivo.' 
-        });
+        return res.status(400).json({ success: false, message: 'No se subió ningún archivo.' });
     }
 
     console.log(`[Bulk Upload Specs] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
 
     try {
-        // Verificar que el archivo sea un Excel válido
         if (!req.file.mimetype.includes('excel') && !req.file.mimetype.includes('spreadsheet')) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'El archivo debe ser un archivo Excel válido.' 
-            });
+            return res.status(400).json({ success: false, message: 'El archivo debe ser un archivo Excel válido (.xls, .xlsx).' });
         }
 
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-
-        // Asumir que los datos están en la primera hoja
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
+        const dataAoA_full = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: null, raw: true });
 
-        // Convertir la hoja a un array de arrays usando la función correcta
-        const data = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: null });
-
-        if (data.length < 2 || data[0].length < 2) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'El archivo no tiene el formato esperado (mínimo 2 filas y 2 columnas).' 
-            });
+        if (!dataAoA_full || dataAoA_full.length < 2 || dataAoA_full[0].length < 1) { // Fila de cabecera de productos debe tener al menos un código (además de la primera celda vacía o de título)
+            return res.status(400).json({ success: false, message: 'El archivo Excel no tiene el formato esperado (mínimo 2 filas y al menos 1 código de producto en la cabecera).' });
         }
 
-        // Extraer códigos de producto (Fila 1, desde Columna B en adelante)
-        const productCodesRow = data[0];
-        const productCodes = productCodesRow.slice(1).filter(code => code !== undefined && code !== null && String(code).trim() !== '');
+        // Fila 0: [Celda A1 (usualmente vacía o 'Especificación'), CodigoProducto1, CodigoProducto2, ...]
+        const headerRow = dataAoA_full[0];
+        const productCodes = headerRow.slice(1) // Empezar desde la segunda celda (índice 1)
+            .map(code => getSafeCellValue(code))
+            .filter(code => code !== null);
 
         if (productCodes.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'No se encontraron códigos de producto válidos en la primera fila.' 
-            });
+            return res.status(400).json({ success: false, message: 'No se encontraron códigos de producto válidos en la primera fila (a partir de la columna B).' });
         }
+        console.log(`[Bulk Upload Specs] Product codes from header: ${productCodes.join(', ')}`);
 
-        // Extraer nombres de especificaciones (Columna A, desde Fila 2 en adelante)
-        const specNamesColumn = data.slice(1).map(row => row[0]);
-        const specNames = specNamesColumn.filter(name => name !== undefined && name !== null && String(name).trim() !== '');
+        const productsSpecifications = {};
+        productCodes.forEach(code => {
+            productsSpecifications[String(code)] = []; // Usar String(code) como clave
+        });
 
-        if (specNames.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'No se encontraron nombres de especificaciones válidos en la primera columna (desde la segunda fila).' 
-            });
-        }
+        let currentPath = [];
+        const startDataRowIndex = 1; // Las especificaciones empiezan en la segunda fila del Excel (índice 1 del array)
 
-        console.log(`Found ${productCodes.length} product codes and ${specNames.length} specification names.`);
+        for (let i = startDataRowIndex; i < dataAoA_full.length; i++) {
+            const row = dataAoA_full[i];
+            const specNameRaw = getSafeCellValue(row[0]);
 
-        const results = [];
-        let hasErrors = false;
-
-        // Procesar cada producto
-        for (let i = 0; i < productCodes.length; i++) {
-            const productCode = String(productCodes[i]).trim();
-            const productDataColumnIndex = i + 1;
-
-            // Extraer especificaciones técnicas para el producto actual
-            const technicalSpecifications = {};
-            for (let j = 0; j < specNames.length; j++) {
-                const specName = String(specNames[j]).trim();
-                const specDataRowIndex = j + 1;
-
-                if (data[specDataRowIndex] && data[specDataRowIndex][productDataColumnIndex] !== undefined) {
-                    // Asegurarse de no guardar 'null' si la celda está vacía para evitar sobreescribir con null innecesariamente,
-                    // aunque en este caso queremos representar la ausencia de valor.
-                    technicalSpecifications[specName] = data[specDataRowIndex][productDataColumnIndex];
-                } else {
-                    // Explicitamente establecer a null si la celda está vacía
-                    technicalSpecifications[specName] = null;
-                }
+            if (!specNameRaw) { // Si la primera celda de la fila (nombre de especificación) está vacía, saltar o resetear path.
+                currentPath = [];
+                console.log(`[Bulk Upload Specs] Row ${i + 1}: Empty spec name (Column A), resetting path.`);
+                continue;
             }
 
-            // Construir el objeto de actualización de forma explícita para el subdocumento
-            const updateObject = {};
-            // Iterar sobre las especificaciones recolectadas y añadirlas al path correcto
-            for (const specName in technicalSpecifications) {
-                if (technicalSpecifications.hasOwnProperty(specName)) {
-                    updateObject[`especificaciones_tecnicas.${specName}`] = technicalSpecifications[specName];
-                }
-            }
+            const cleanedSpecNameKey = cleanKey(specNameRaw);
+            
+            // Determinar si la fila es un título
+            const productValueCells = row.slice(1, productCodes.length + 1);
+            const allProductCellsEmpty = productValueCells.every(cell => getSafeCellValue(cell) === null);
+            const isTitle = allProductCellsEmpty && looksLikeTitle(specNameRaw);
 
-            // Si no hay especificaciones, tal vez queramos limpiar el objeto o dejarlo como está
-            // Si updateObject está vacío, updateProductInDB podría no hacer nada.
-            // Aquí asumimos que siempre habrá especificaciones si el archivo está bien formado.
-            if (Object.keys(updateObject).length === 0 && specNames.length > 0) {
-                 console.warn(`[Bulk Upload Specs] No specification data collected for product ${productCode} despite finding specification names.`);
-                 // Podríamos decidir qué hacer aquí: saltar la actualización, limpiar el campo, etc.
-                 // Por ahora, si updateObject está vacío, no se actualizarán especificaciones_tecnicas.
-                 // Si hay especificaciones definidas en la plantilla pero todas las celdas están vacías,
-                 // updateObject contendrá { 'especificaciones_tecnicas.specName1': null, ... }
-            }
-
-            try {
-                // Pasar el objeto de actualización explícito al servicio de datos
-                const updatedProduct = await updateProductInDB(productCode, updateObject);
-
-                if (updatedProduct) {
-                    results.push({ 
-                        code: productCode, 
-                        status: 'success', 
-                        message: 'Especificaciones actualizadas.' 
+            if (isTitle) {
+                currentPath = [cleanedSpecNameKey]; // Nuevo título principal, resetea y establece el path
+                console.log(`[Bulk Upload Specs] Row ${i + 1}: TITLE "${specNameRaw}". Path set to: ${currentPath.join(' > ')}`);
+                
+                // Añadir el objeto título al array de cada producto
+                productCodes.forEach(productCode => {
+                    const productCodeStr = String(productCode);
+                    productsSpecifications[productCodeStr].push({
+                        nombre: specNameRaw,
+                        clave: cleanedSpecNameKey,
+                        tipo: 'titulo',
+                        path: [...currentPath],
+                        // Los títulos no tienen un 'valor' específico del producto en su propia fila.
+                        // Podríamos incluir un objeto 'valores' vacío si el frontend lo espera.
+                        // O simplemente no tener 'valor' para tipo 'titulo'.
+                        // Para consistencia con la estructura que espera el frontend:
+                        valor: null // O un objeto valores: {} si fuera más genérico
                     });
-                } else {
-                    hasErrors = true;
-                    results.push({ 
-                        code: productCode, 
-                        status: 'warning', 
-                        message: 'Producto no encontrado en la base de datos.' 
+                });
+            } else {
+                // Es una característica, tiene valores para los productos
+                console.log(`[Bulk Upload Specs] Row ${i + 1}: CHARACTERISTIC "${specNameRaw}". Current path: ${currentPath.join(' > ')}`);
+                productCodes.forEach((productCode, productIndex) => {
+                    const productCodeStr = String(productCode);
+                    const value = getSafeCellValue(row[productIndex + 1]); // +1 porque los valores de producto empiezan en row[1]
+
+                    productsSpecifications[productCodeStr].push({
+                        nombre: specNameRaw,
+                        clave: cleanedSpecNameKey,
+                        tipo: 'caracteristica',
+                        path: [...currentPath], // Path de la sección a la que pertenece
+                        valor: value // Valor de esta característica para este producto
                     });
-                }
-            } catch (dbError) {
-                hasErrors = true;
-                console.error(`Error updating product ${productCode} in DB:`, dbError);
-                results.push({ 
-                    code: productCode, 
-                    status: 'error', 
-                    message: `Error al actualizar en DB: ${dbError.message}` 
                 });
             }
         }
+        
+        // --- DEBUG LOG: Inspect parsed data ---
+        if (productCodes.length > 0) {
+            const firstProductCode = String(productCodes[0]);
+            console.log(`[Bulk Upload Specs] Parsed Specifications for product ${firstProductCode} (first 5 items):`, JSON.stringify(productsSpecifications[firstProductCode]?.slice(0,5), null, 2));
+        }
+        // --- END DEBUG LOG ---
 
-        // Refrescar el caché global después de procesar todos los productos
-        try {
-            await initializeProductCache();
-            console.log('Cache refreshed after bulk specification update.');
-        } catch (cacheError) {
-            console.error('Error refreshing cache after bulk update:', cacheError);
-            // No consideramos esto un error fatal
+        let operaciones = [];
+        productCodes.forEach(productCode => {
+            const productCodeStr = String(productCode);
+            if (productsSpecifications[productCodeStr] && productsSpecifications[productCodeStr].length > 0) {
+                operaciones.push({
+                    updateOne: {
+                        filter: { Codigo_Producto: productCodeStr },
+                        update: { $set: { especificaciones_tecnicas: productsSpecifications[productCodeStr] } },
+                        upsert: false
+                    }
+                });
+            }
+        });
+
+        console.log(`[Bulk Upload Specs] Prepared ${operaciones.length} bulk write operations.`);
+        let resultadoBulkWrite = { modifiedCount: 0, matchedCount: 0, upsertedCount:0, getWriteErrors: () => [], hasWriteErrors: () => false };
+
+        if (operaciones.length > 0) {
+            resultadoBulkWrite = await Producto.bulkWrite(operaciones, { ordered: false });
+            console.log('[Bulk Upload Specs] BulkWrite result:', resultadoBulkWrite);
+        } else {
+            console.log('[Bulk Upload Specs] No valid operations to perform.');
+            return res.status(400).json({ success: false, message: 'No se procesaron datos válidos para actualizar especificaciones.'});
+        }
+        
+        const productosConErroresDB = [];
+        if (resultadoBulkWrite.hasWriteErrors()) {
+            resultadoBulkWrite.getWriteErrors().forEach(err => {
+                const codigoMatch = err.err.op?.updateOne?.filter?.Codigo_Producto;
+                productosConErroresDB.push({
+                    codigo: codigoMatch ? String(codigoMatch) : 'Desconocido',
+                    message: err.errmsg || 'Error de escritura en BD',
+                    details: `Código de error: ${err.code}`
+                });
+            });
         }
 
-        // Enviar respuesta resumen
+        const productosNoEncontradosCount = operaciones.length - (resultadoBulkWrite.matchedCount || 0);
+        const productsSuccessfullyUpdated = resultadoBulkWrite.modifiedCount || 0;
+        
+        // --- Cache refresh logic (ensure initializeProductCache is available or remove/comment out) ---
+        // try {
+        //     await initializeProductCache(); 
+        //     console.log('[Bulk Upload Specs] Cache refreshed.');
+        // } catch (cacheError) {
+        //     console.error('[Bulk Upload Specs] Error refreshing cache:', cacheError);
+        // }
+        // --- End cache refresh ---
+
+        const hasErrors = productosConErroresDB.length > 0 || productosNoEncontradosCount > 0;
         const status = hasErrors ? 207 : 200;
-        res.status(status).json({ 
-            success: true, 
-            message: 'Procesamiento de archivo de especificaciones completado.', 
-            results 
+        const responseMessage = hasErrors ?
+            `Procesamiento completado con advertencias/errores. Productos no encontrados: ${productosNoEncontradosCount}. Errores de BD: ${productosConErroresDB.length}.` :
+            `Especificaciones técnicas de ${productsSuccessfullyUpdated} productos actualizadas exitosamente.`;
+
+        res.status(status).json({
+            success: !hasErrors,
+            message: responseMessage,
+            summary: {
+                totalProductsInExcelHeader: productCodes.length,
+                productsAttemptedToUpdate: operaciones.length,
+                productsSuccessfullyUpdated: productsSuccessfullyUpdated,
+                productsFoundButNotModified: (resultadoBulkWrite.matchedCount || 0) - productsSuccessfullyUpdated,
+                productsNotFoundInDB: productosNoEncontradosCount,
+                productsWithDbErrors: productosConErroresDB.length,
+            },
+            errors: productosConErroresDB,
+            warnings: productosNoEncontradosCount > 0 ? [{ message: `Se encontraron ${productosNoEncontradosCount} códigos de producto en el archivo que no existen en la base de datos.` }] : []
         });
 
     } catch (error) {
-        console.error('Error processing specifications file:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error interno del servidor al procesar el archivo.', 
-            error: error.message 
-        });
+        console.error('[Bulk Upload Specs] General error processing uploaded file:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor al procesar el archivo.', error: error.message });
     }
-};
+});
 
 // @desc    Delete a product by its Codigo_Producto
 // @route   DELETE /api/products/code/:codigoProducto (or just /api/products/:codigo if preferred)
