@@ -724,16 +724,14 @@ const getAllCalculosHistorial = asyncHandler(async (req, res) => {
     // Construir la respuesta con metadatos de paginación
     const response = {
       data: historiales,
-      pagination: {
-        totalDocs,
-        totalPages,
-        currentPage: page,
-        limit,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
-        nextPage: page < totalPages ? page + 1 : null,
-        prevPage: page > 1 ? page - 1 : null
-      },
+      total: totalDocs, // Añadimos el total directamente en la raíz
+      page: page,
+      limit: limit,
+      totalPages: totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      nextPage: page < totalPages ? page + 1 : null,
+      prevPage: page > 1 ? page - 1 : null,
       search: {
         term: searchTerm,
         sortBy,
