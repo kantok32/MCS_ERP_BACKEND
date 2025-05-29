@@ -777,10 +777,53 @@ const getCalculoHistorialById = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Eliminar un historial de cálculo por su ID
+// @route   DELETE /api/calculo-historial/:id
+// @access  Public (o Private si se usa autenticación)
+const deleteCalculoHistorial = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`[deleteCalculoHistorial] Intentando eliminar historial con ID: ${id}`);
+
+    // Validar que el ID tenga el formato correcto de MongoDB
+    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      res.status(400);
+      throw new Error('ID de historial de cálculo no válido. Debe ser un ObjectId válido de MongoDB.');
+    }
+
+    const historial = await CalculoHistorial.findById(id);
+    console.log(`[deleteCalculoHistorial] Resultado de búsqueda:`, historial ? 'Encontrado' : 'No encontrado');
+
+    if (!historial) {
+      res.status(404);
+      throw new Error('Historial de cálculo no encontrado.');
+    }
+
+    await historial.deleteOne();
+    console.log(`[deleteCalculoHistorial] Historial eliminado exitosamente`);
+    res.status(200).json({ 
+      message: 'Historial de cálculo eliminado exitosamente.',
+      id: id 
+    });
+  } catch (error) {
+    console.error(`[deleteCalculoHistorial] Error al eliminar el historial de cálculo por ID (${req.params.id}):`, error);
+    if (error.kind === 'ObjectId') {
+      res.status(400);
+      throw new Error('ID de historial de cálculo no válido.');
+    }
+    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    res.status(statusCode).json({ 
+      message: error.message || 'Error interno al eliminar el historial.',
+      error: error.message
+    });
+  }
+});
+
 module.exports = {
     guardarYExportarCalculos,
     generarHtmlParaPdf,
     guardarCalculoHistorial,
     getAllCalculosHistorial,
-    getCalculoHistorialById
+    getCalculoHistorialById,
+    deleteCalculoHistorial
 }; 

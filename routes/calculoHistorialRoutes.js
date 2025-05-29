@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { guardarYExportarCalculos, guardarCalculoHistorial, getAllCalculosHistorial, getCalculoHistorialById } = require('../controllers/calculoHistorialController');
+const { guardarYExportarCalculos, guardarCalculoHistorial, getAllCalculosHistorial, getCalculoHistorialById, deleteCalculoHistorial } = require('../controllers/calculoHistorialController');
 
 // Middleware de autenticación (descomentar si se requiere proteger la ruta)
 // const { protect } = require('../middleware/authMiddleware');
@@ -24,5 +24,10 @@ router.post('/guardar', /* protect, */ guardarCalculoHistorial);
 // @route   GET /api/calculo-historial/:id
 // @access  Public (o Private si se usa 'protect')
 router.get('/:id', /* protect, */ getCalculoHistorialById);
+
+// @desc    Eliminar un historial de cálculo
+// @route   DELETE /api/calculo-historial/:id
+// @access  Public (o Private si se usa 'protect')
+router.delete('/:id', /* protect, */ deleteCalculoHistorial);
 
 module.exports = router; 
