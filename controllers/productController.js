@@ -1264,23 +1264,97 @@ const uploadBulkProductsPlain = async (req, res) => {
             error: error.message
         });
     }
+});
+
+// Helper function to safely get cell value (version from utils/fetchProducts.js)
+const getSafeCellValueHelper = (cellValue, defaultValue = null) => {
+    if (cellValue !== undefined && cellValue !== null) {
+        const value = String(cellValue).trim(); // Siempre convertir a string y trim
+        return value === '' ? null : value; // Considerar strings vacíos como null
+    }
+    return defaultValue; // Returns null for undefined or null cells
 };
 
-// @desc    Upload technical specifications from a matrix template
-// @route   POST /api/products/upload-specifications
-// @access  Private/Admin (assuming)
+// Helper function to check if a string looks like a section title (all caps, min length, improved check)
+const looksLikeTitle = (text) => {
+    if (typeof text !== 'string' || text.length < 3) { // Minimum length for a title
+        return false;
+    }
+    const trimmedText = text.trim();
+    if (trimmedText === '') return false;
+
+    // Heuristic 1: Is it all uppercase (ignoring spaces and symbols)?
+    const alphanumericOnly = trimmedText.replace(/[^a-zA-Z0-9]/g, '');
+    const isUpperCase = alphanumericOnly.length > 0 && alphanumericOnly.toUpperCase() === alphanumericOnly;
+
+    return isUpperCase; // Primary heuristic based on observation
+};
+
+// Helper function to clean keys for database fields (snake_case)
+const cleanKey = (text) => {
+    if (typeof text !== 'string') return '';
+    return text
+        .trim() // Trim whitespace
+        .toLowerCase() // Convert to lowercase
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+        .replace(/[^a-z0-9]+/g, '_') // Replace non-alphanumeric with underscore
+        .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+};
+
+// --- BEGIN TECHNICAL SPECIFICATIONS UPLOAD LOGIC (Moved from utils/fetchProducts.js) ---
+
+// Helper function to safely get cell value
+const getSafeCellValue_spec = (cellValue, defaultValue = null) => {
+    if (cellValue !== undefined && cellValue !== null) {
+        const value = String(cellValue).trim(); // Siempre convertir a string y trim
+        return value === '' ? null : value; // Considerar strings vacíos como null
+    }
+    return defaultValue; // Returns null for undefined or null cells
+};
+
+// Helper function to check if a string looks like a section title (all caps, min length, improved check)
+const looksLikeTitle_spec = (text) => {
+    if (typeof text !== 'string' || text.length < 3) { // Minimum length for a title
+        return false;
+    }
+    const trimmedText = text.trim();
+    if (trimmedText === '') return false;
+
+    const alphanumericOnly = trimmedText.replace(/[^a-zA-Z0-9]/g, '');
+    const isUpperCase = alphanumericOnly.length > 0 && alphanumericOnly.toUpperCase() === alphanumericOnly;
+
+    return isUpperCase;
+};
+
+// Helper function to clean keys for database fields (snake_case)
+const cleanKey_spec = (text) => {
+    if (typeof text !== 'string') return '';
+    return text
+        .trim()
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '');
+};
+
 const uploadTechnicalSpecifications = asyncHandler(async (req, res) => {
     console.log('[Bulk Upload Specs] Request received for technical specifications update.');
 
     if (!req.file) {
-        return res.status(400).json({ success: false, message: 'No se subió ningún archivo.' });
+        return res.status(400).json({
+            success: false,
+            message: 'No se subió ningún archivo.'
+        });
     }
 
     console.log(`[Bulk Upload Specs] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
 
     try {
-        if (!req.file.mimetype.includes('excel') && !req.file.mimetype.includes('spreadsheet')) {
-            return res.status(400).json({ success: false, message: 'El archivo debe ser un archivo Excel válido (.xls, .xlsx).' });
+        if (!req.file.mimetype.includes('excel') && !req.file.mimetype.includes('spreadsheetml')) {
+            return res.status(400).json({
+                success: false,
+                message: 'El archivo debe ser un archivo Excel válido (.xls, .xlsx).'
+            });
         }
 
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
@@ -1288,51 +1362,61 @@ const uploadTechnicalSpecifications = asyncHandler(async (req, res) => {
         const worksheet = workbook.Sheets[sheetName];
         const dataAoA_full = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: null, raw: true });
 
-        if (!dataAoA_full || dataAoA_full.length < 2 || dataAoA_full[0].length < 1) { // Fila de cabecera de productos debe tener al menos un código (además de la primera celda vacía o de título)
-            return res.status(400).json({ success: false, message: 'El archivo Excel no tiene el formato esperado (mínimo 2 filas y al menos 1 código de producto en la cabecera).' });
+        if (!dataAoA_full || dataAoA_full.length < 2 || dataAoA_full[0].length < 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'El archivo no tiene el formato esperado (mínimo 2 filas y 2 columnas).'
+            });
         }
 
-        // Fila 0: [Celda A1 (usualmente vacía o 'Especificación'), CodigoProducto1, CodigoProducto2, ...]
         const headerRow = dataAoA_full[0];
-        const productCodes = headerRow.slice(1) // Empezar desde la segunda celda (índice 1)
-            .map(code => getSafeCellValue(code))
-            .filter(code => code !== null);
+        console.log('[Bulk Upload Specs DEBUG] Raw headerRow from Excel:', JSON.stringify(headerRow));
+        
+        const slicedHeader = headerRow.slice(1);
+        console.log('[Bulk Upload Specs DEBUG] slicedHeader:', JSON.stringify(slicedHeader));
+
+        const mappedCodes = slicedHeader.map(code => getSafeCellValue_spec(code));
+        console.log('[Bulk Upload Specs DEBUG] mappedCodes (after getSafeCellValue_spec):', JSON.stringify(mappedCodes));
+        
+        const productCodes = mappedCodes.filter(code => code !== null);
+        console.log('[Bulk Upload Specs DEBUG] final productCodes:', JSON.stringify(productCodes));
+        console.log('[Bulk Upload Specs DEBUG] final productCodes.length:', productCodes.length);
 
         if (productCodes.length === 0) {
-            return res.status(400).json({ success: false, message: 'No se encontraron códigos de producto válidos en la primera fila (a partir de la columna B).' });
+            return res.status(400).json({
+                success: false,
+                message: 'No se encontraron códigos de producto válidos en la primera fila del archivo Excel (Columna B en adelante).'
+            });
         }
-        console.log(`[Bulk Upload Specs] Product codes from header: ${productCodes.join(', ')}`);
+
+        console.log(`[Bulk Upload Specs] Found ${productCodes.length} product codes in header: ${productCodes.join(', ')}`);
 
         const productsSpecifications = {};
         productCodes.forEach(code => {
-            productsSpecifications[String(code)] = []; // Usar String(code) como clave
+            productsSpecifications[String(code)] = [];
         });
 
         let currentPath = [];
-        const startDataRowIndex = 1; // Las especificaciones empiezan en la segunda fila del Excel (índice 1 del array)
+        const startDataRowIndex = 1;
 
         for (let i = startDataRowIndex; i < dataAoA_full.length; i++) {
             const row = dataAoA_full[i];
-            const specNameRaw = getSafeCellValue(row[0]);
+            const specNameRaw = getSafeCellValue_spec(row[0]);
 
-            if (!specNameRaw) { // Si la primera celda de la fila (nombre de especificación) está vacía, saltar o resetear path.
+            if (!specNameRaw) {
                 currentPath = [];
                 console.log(`[Bulk Upload Specs] Row ${i + 1}: Empty spec name (Column A), resetting path.`);
                 continue;
             }
 
-            const cleanedSpecNameKey = cleanKey(specNameRaw);
-            
-            // Determinar si la fila es un título
+            const cleanedSpecNameKey = cleanKey_spec(specNameRaw);
             const productValueCells = row.slice(1, productCodes.length + 1);
-            const allProductCellsEmpty = productValueCells.every(cell => getSafeCellValue(cell) === null);
-            const isTitle = allProductCellsEmpty && looksLikeTitle(specNameRaw);
+            const allProductCellsEmpty = productValueCells.every(cell => getSafeCellValue_spec(cell) === null);
+            const isTitle = allProductCellsEmpty && looksLikeTitle_spec(specNameRaw);
 
             if (isTitle) {
-                currentPath = [cleanedSpecNameKey]; // Nuevo título principal, resetea y establece el path
+                currentPath = [cleanedSpecNameKey];
                 console.log(`[Bulk Upload Specs] Row ${i + 1}: TITLE "${specNameRaw}". Path set to: ${currentPath.join(' > ')}`);
-                
-                // Añadir el objeto título al array de cada producto
                 productCodes.forEach(productCode => {
                     const productCodeStr = String(productCode);
                     productsSpecifications[productCodeStr].push({
@@ -1340,37 +1424,29 @@ const uploadTechnicalSpecifications = asyncHandler(async (req, res) => {
                         clave: cleanedSpecNameKey,
                         tipo: 'titulo',
                         path: [...currentPath],
-                        // Los títulos no tienen un 'valor' específico del producto en su propia fila.
-                        // Podríamos incluir un objeto 'valores' vacío si el frontend lo espera.
-                        // O simplemente no tener 'valor' para tipo 'titulo'.
-                        // Para consistencia con la estructura que espera el frontend:
-                        valor: null // O un objeto valores: {} si fuera más genérico
+                        valor: null
                     });
                 });
             } else {
-                // Es una característica, tiene valores para los productos
                 console.log(`[Bulk Upload Specs] Row ${i + 1}: CHARACTERISTIC "${specNameRaw}". Current path: ${currentPath.join(' > ')}`);
                 productCodes.forEach((productCode, productIndex) => {
                     const productCodeStr = String(productCode);
-                    const value = getSafeCellValue(row[productIndex + 1]); // +1 porque los valores de producto empiezan en row[1]
-
+                    const value = getSafeCellValue_spec(row[productIndex + 1]);
                     productsSpecifications[productCodeStr].push({
                         nombre: specNameRaw,
                         clave: cleanedSpecNameKey,
                         tipo: 'caracteristica',
-                        path: [...currentPath], // Path de la sección a la que pertenece
-                        valor: value // Valor de esta característica para este producto
+                        path: [...currentPath],
+                        valor: value
                     });
                 });
             }
         }
-        
-        // --- DEBUG LOG: Inspect parsed data ---
+
         if (productCodes.length > 0) {
             const firstProductCode = String(productCodes[0]);
-            console.log(`[Bulk Upload Specs] Parsed Specifications for product ${firstProductCode} (first 5 items):`, JSON.stringify(productsSpecifications[firstProductCode]?.slice(0,5), null, 2));
+            // console.log(`[Bulk Upload Specs] Parsed Specifications for product ${firstProductCode} (first 5 items):`, JSON.stringify(productsSpecifications[firstProductCode]?.slice(0,5), null, 2));
         }
-        // --- END DEBUG LOG ---
 
         let operaciones = [];
         productCodes.forEach(productCode => {
@@ -1394,9 +1470,24 @@ const uploadTechnicalSpecifications = asyncHandler(async (req, res) => {
             console.log('[Bulk Upload Specs] BulkWrite result:', resultadoBulkWrite);
         } else {
             console.log('[Bulk Upload Specs] No valid operations to perform.');
-            return res.status(400).json({ success: false, message: 'No se procesaron datos válidos para actualizar especificaciones.'});
+            // Consider returning a success:true with a message if no operations were needed but file was valid.
+            // For now, treating as if nothing was processed if no ops.
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Archivo procesado, pero no se generaron operaciones de actualización. Verifique si los datos ya existen o si el archivo está vacío de contenido relevante.',
+                summary: {
+                    totalProductsInExcelHeader: productCodes.length,
+                    productsAttemptedToUpdate: 0,
+                    productsSuccessfullyUpdated: 0,
+                    productsFoundButNotModified: 0,
+                    productsNotFoundInDB: productCodes.length, // Assuming none found if no ops
+                    productsWithDbErrors: 0,
+                },
+                errors: [],
+                warnings: [] 
+            });
         }
-        
+
         const productosConErroresDB = [];
         if (resultadoBulkWrite.hasWriteErrors()) {
             resultadoBulkWrite.getWriteErrors().forEach(err => {
@@ -1412,41 +1503,38 @@ const uploadTechnicalSpecifications = asyncHandler(async (req, res) => {
         const productosNoEncontradosCount = operaciones.length - (resultadoBulkWrite.matchedCount || 0);
         const productsSuccessfullyUpdated = resultadoBulkWrite.modifiedCount || 0;
         
-        // --- Cache refresh logic (ensure initializeProductCache is available or remove/comment out) ---
-        // try {
-        //     await initializeProductCache(); 
-        //     console.log('[Bulk Upload Specs] Cache refreshed.');
-        // } catch (cacheError) {
-        //     console.error('[Bulk Upload Specs] Error refreshing cache:', cacheError);
-        // }
-        // --- End cache refresh ---
-
-        const hasErrors = productosConErroresDB.length > 0 || productosNoEncontradosCount > 0;
-        const status = hasErrors ? 207 : 200;
-        const responseMessage = hasErrors ?
-            `Procesamiento completado con advertencias/errores. Productos no encontrados: ${productosNoEncontradosCount}. Errores de BD: ${productosConErroresDB.length}.` :
+        const hasErrorsOrWarnings = productosConErroresDB.length > 0 || productosNoEncontradosCount > 0;
+        const status = hasErrorsOrWarnings ? 207 : 200;
+        const responseMessage = hasErrorsOrWarnings ?
+            `Procesamiento completado. Actualizados: ${productsSuccessfullyUpdated}. No encontrados en BD: ${productosNoEncontradosCount}. Errores de BD: ${productosConErroresDB.length}.` :
             `Especificaciones técnicas de ${productsSuccessfullyUpdated} productos actualizadas exitosamente.`;
 
         res.status(status).json({
-            success: !hasErrors,
+            success: !hasErrorsOrWarnings,
             message: responseMessage,
             summary: {
                 totalProductsInExcelHeader: productCodes.length,
                 productsAttemptedToUpdate: operaciones.length,
                 productsSuccessfullyUpdated: productsSuccessfullyUpdated,
-                productsFoundButNotModified: (resultadoBulkWrite.matchedCount || 0) - productsSuccessfullyUpdated,
+                productsFoundButNotModified: Math.max(0, (resultadoBulkWrite.matchedCount || 0) - productsSuccessfullyUpdated), // Asegurar no negativo
                 productsNotFoundInDB: productosNoEncontradosCount,
                 productsWithDbErrors: productosConErroresDB.length,
             },
             errors: productosConErroresDB,
-            warnings: productosNoEncontradosCount > 0 ? [{ message: `Se encontraron ${productosNoEncontradosCount} códigos de producto en el archivo que no existen en la base de datos.` }] : []
+            warnings: productosNoEncontradosCount > 0 ? [{ message: `Se procesaron ${operaciones.length} operaciones. ${productosNoEncontradosCount} códigos de producto no se encontraron en la base de datos.` }] : []
         });
 
     } catch (error) {
         console.error('[Bulk Upload Specs] General error processing uploaded file:', error);
-        res.status(500).json({ success: false, message: 'Error interno del servidor al procesar el archivo.', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor al procesar el archivo.',
+            error: error.message
+        });
     }
 });
+
+// --- END TECHNICAL SPECIFICATIONS UPLOAD LOGIC ---
 
 // @desc    Delete a product by its Codigo_Producto
 // @route   DELETE /api/products/code/:codigoProducto (or just /api/products/:codigo if preferred)
