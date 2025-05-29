@@ -719,7 +719,24 @@ const getAllCalculosHistorial = asyncHandler(async (req, res) => {
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit)
-      .select('-itemsParaCotizar -resultadosCalculados'); // Excluir campos pesados por defecto
+      .select({
+        _id: 1,
+        numeroConfiguracion: 1,
+        createdAt: 1,
+        nombreReferencia: 1,
+        nombrePerfil: 1,
+        'cotizacionDetails.clienteNombre': 1,
+        itemsParaCotizar: {
+          $slice: 1,
+          principal: {
+            _id: 1,
+            codigo_producto: 1,
+            nombre_del_producto: 1,
+            descripcion: 1,
+            'caracteristicas.nombre_del_producto': 1
+          }
+        }
+      }); // Proyectar campos necesarios y limitar itemsParaCotizar
 
     // Construir la respuesta con metadatos de paginación
     const response = {
