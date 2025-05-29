@@ -726,16 +726,7 @@ const getAllCalculosHistorial = asyncHandler(async (req, res) => {
         nombreReferencia: 1,
         nombrePerfil: 1,
         'cotizacionDetails.clienteNombre': 1,
-        itemsParaCotizar: {
-          $slice: 1,
-          principal: {
-            _id: 1,
-            codigo_producto: 1,
-            nombre_del_producto: 1,
-            descripcion: 1,
-            'caracteristicas.nombre_del_producto': 1
-          }
-        }
+        itemsParaCotizar: { $slice: 1 }
       }); // Proyectar campos necesarios y limitar itemsParaCotizar
 
     // Construir la respuesta con metadatos de paginación
