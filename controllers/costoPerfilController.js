@@ -1,4 +1,5 @@
 const CostoPerfil = require('../models/CostoPerfil');
+const Producto = require('../models/Producto'); // Añadir importación del modelo Producto
 const { calcularCostoProducto } = require('../utils/calculoCostoProducto'); // Importar la función de cálculo
 const { fetchCurrencyValues } = require('../utils/fetchProducts'); // Importar fetchCurrencyValues
 // Ya no necesitamos getLatestCurrencyValues aquí
@@ -226,7 +227,8 @@ const calculateCostoProductoFromProfile = async (req, res) => {
       anoCotizacion,
       anoEnCurso,
       costoFabricaOriginalEUR,
-      tipoCambioEurUsdActual 
+      tipoCambioEurUsdActual,
+      codigoProductoPrincipal // Nuevo parámetro para identificar el producto principal
     } = req.body;
 
     // Validaciones básicas (igual que antes)
@@ -276,6 +278,26 @@ const calculateCostoProductoFromProfile = async (req, res) => {
       return res.status(404).json({ message: 'Perfil de costo no encontrado.' });
     }
 
+    // Buscar información del producto principal si se proporcionó el código
+    let productoPrincipalInfo = null;
+    if (codigoProductoPrincipal) {
+      try {
+        const productoPrincipal = await Producto.findOne({ Codigo_Producto: codigoProductoPrincipal });
+        if (productoPrincipal) {
+          productoPrincipalInfo = {
+            codigo_producto: productoPrincipal.Codigo_Producto,
+            nombre_del_producto: productoPrincipal.caracteristicas?.nombre_del_producto || productoPrincipal.nombre_del_producto,
+            descripcion: productoPrincipal.descripcion,
+            fabricante: productoPrincipal.fabricante,
+            modelo: productoPrincipal.caracteristicas?.modelo
+          };
+        }
+      } catch (error) {
+        console.error('Error al buscar información del producto principal:', error);
+        // No fallamos si no podemos obtener la información del producto
+      }
+    }
+
     // Llamar a la función de cálculo pasando el objeto perfil y el TC USD/CLP
     const resultadoCalculo = calcularCostoProducto({
       anoCotizacion: numAnoCotizacion,
@@ -295,7 +317,8 @@ const calculateCostoProductoFromProfile = async (req, res) => {
       perfilUsado: { _id: perfil._id, nombre: perfil.nombre_perfil || perfil._id }, 
       resultado: { 
           inputs: resultadoCalculo.inputs, 
-          calculados: resultadoCalculo.calculados 
+          calculados: resultadoCalculo.calculados,
+          producto_principal_usado: productoPrincipalInfo // Incluir la información del producto principal
         }
     });
 
