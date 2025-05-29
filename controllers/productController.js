@@ -922,7 +922,7 @@ const uploadBulkProductsMatrix = async (req, res) => {
 // @desc    Upload bulk products from a plain template
 // @route   POST /api/products/upload-plain
 // @access  Private/Admin (assuming)
-const uploadBulkProductsPlain = async (req, res) => {
+const uploadBulkProductsPlain = asyncHandler(async (req, res) => {
     console.log('[Bulk Upload Plain] Request received for plain template upload.');
 
     // Verificar si se subió un archivo
