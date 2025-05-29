@@ -1279,7 +1279,6 @@ const uploadTechnicalSpecifications = async (req, res) => {
     }
     console.log(`[Bulk Upload Specs] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
     try {
-        // Verificar que el archivo sea un Excel válido
         if (!req.file.mimetype.includes('excel') && !req.file.mimetype.includes('spreadsheet')) {
             return res.status(400).json({ 
                 success: false, 
