@@ -987,6 +987,7 @@ const uploadBulkProductsPlain = async (req, res) => {
             'dimensiones.ancho_cm': 'ancho_mm', // Necesita conversión de mm a cm
             'dimensiones.alto_cm': 'alto_mm',   // Necesita conversión de mm a cm
             'asignado_a_codigo_principal': 'asignacion', // Map to the correct column header
+            'fabricante': 'fabricante', // Changed from caracteristicas.fabricante to just fabricante
             // Agrega aquí otros campos de DB y su forma normalizada en la plantilla si es necesario
         };
 

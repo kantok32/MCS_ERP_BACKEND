@@ -68,6 +68,7 @@ const productoSchema = new mongoose.Schema({
     descripcion: { type: String, trim: true },
     clasificacion_easysystems: { type: String, trim: true },
     codigo_ea: { type: String, trim: true },
+    fabricante: { type: String, trim: true },
     // <<<--- NUEVOS CAMPOS DE COSTO --- >>>
     producto: { type: String, trim: true },
     datos_contables: { // Reemplaza los campos de costo individuales

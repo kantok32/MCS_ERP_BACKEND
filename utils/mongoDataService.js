@@ -88,6 +88,7 @@ const fetchBaseProductsFromDB = async () => {
       productoTransformado.Descripcion = productoTransformado.Descripcion || '-';
       productoTransformado.Modelo = productoTransformado.Modelo || '-';
       productoTransformado.categoria = productoTransformado.categoria || '-';
+      productoTransformado.fabricante = p.fabricante || '-'; // Changed to use main level fabricante
       // codigo_producto ya debería estar o se mapeó arriba
       productoTransformado.codigo_producto = productoTransformado.codigo_producto || productoTransformado.Codigo_Producto || '-';
 
@@ -178,11 +179,16 @@ const getProductByCodeFromDB = async (codigoProducto) => {
       if (product.caracteristicas.categoria) {
         productoTransformado.categoria = product.caracteristicas.categoria;
       }
+      // Add fabricante field
+      if (product.caracteristicas.fabricante) {
+        productoTransformado.fabricante = product.caracteristicas.fabricante;
+      }
     }
     productoTransformado.nombre_del_producto = productoTransformado.nombre_del_producto || '-';
     productoTransformado.Descripcion = productoTransformado.Descripcion || '-';
     productoTransformado.Modelo = productoTransformado.Modelo || '-';
     productoTransformado.categoria = productoTransformado.categoria || '-';
+    productoTransformado.fabricante = productoTransformado.fabricante || '-';
     productoTransformado.codigo_producto = productoTransformado.codigo_producto || productoTransformado.Codigo_Producto || '-';
 
     return productoTransformado;
@@ -258,11 +264,16 @@ const updateProductInDB = async (codigoProducto, updateData) => {
       if (product.caracteristicas.categoria) {
         productoTransformado.categoria = product.caracteristicas.categoria;
       }
+      // Add fabricante field
+      if (product.caracteristicas.fabricante) {
+        productoTransformado.fabricante = product.caracteristicas.fabricante;
+      }
     }
     productoTransformado.nombre_del_producto = productoTransformado.nombre_del_producto || '-';
     productoTransformado.Descripcion = productoTransformado.Descripcion || '-';
     productoTransformado.Modelo = productoTransformado.Modelo || '-';
     productoTransformado.categoria = productoTransformado.categoria || '-';
+    productoTransformado.fabricante = productoTransformado.fabricante || '-';
     productoTransformado.codigo_producto = productoTransformado.codigo_producto || productoTransformado.Codigo_Producto || '-';
 
     console.log(`[mongoDataService - updateProductInDB] Producto DESPUÉS de transformación (productoTransformado):`, JSON.stringify(productoTransformado, null, 2));
