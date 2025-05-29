@@ -1271,114 +1271,70 @@ const uploadBulkProductsPlain = async (req, res) => {
 // @access  Private/Admin (assuming)
 const uploadTechnicalSpecifications = async (req, res) => {
     console.log('[Bulk Upload Specs] Request received for technical specifications update.');
-    
-    // Verificar si se subió un archivo
     if (!req.file) {
         return res.status(400).json({ 
             success: false, 
             message: 'No se subió ningún archivo.' 
         });
     }
-
     console.log(`[Bulk Upload Specs] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
-
     try {
-        // Verificar que el archivo sea un Excel válido
         if (!req.file.mimetype.includes('excel') && !req.file.mimetype.includes('spreadsheet')) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'El archivo debe ser un archivo Excel válido.' 
             });
         }
-
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-
-        // Asumir que los datos están en la primera hoja
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-
-        // Convertir la hoja a un array de arrays usando la función correcta
         const data = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: null });
-
         if (data.length < 2 || data[0].length < 2) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'El archivo no tiene el formato esperado (mínimo 2 filas y 2 columnas).' 
             });
         }
-
         // Extraer códigos de producto (Fila 1, desde Columna B en adelante)
         const productCodesRow = data[0];
         const productCodes = productCodesRow.slice(1).filter(code => code !== undefined && code !== null && String(code).trim() !== '');
-
         if (productCodes.length === 0) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'No se encontraron códigos de producto válidos en la primera fila.' 
             });
         }
-
         // Extraer nombres de especificaciones (Columna A, desde Fila 2 en adelante)
         const specNamesColumn = data.slice(1).map(row => row[0]);
         const specNames = specNamesColumn.filter(name => name !== undefined && name !== null && String(name).trim() !== '');
-
         if (specNames.length === 0) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'No se encontraron nombres de especificaciones válidos en la primera columna (desde la segunda fila).' 
             });
         }
-
         console.log(`Found ${productCodes.length} product codes and ${specNames.length} specification names.`);
-
         const results = [];
         let hasErrors = false;
-
         // Procesar cada producto
         for (let i = 0; i < productCodes.length; i++) {
             const productCode = String(productCodes[i]).trim();
             const productDataColumnIndex = i + 1;
-
-            // Extraer especificaciones técnicas para el producto actual
-            const technicalSpecifications = {};
+            // --- Construir un ARRAY ordenado de especificaciones ---
+            const technicalSpecificationsArray = [];
             for (let j = 0; j < specNames.length; j++) {
-                const specName = String(specNames[j]).trim();
                 const specDataRowIndex = j + 1;
-
-                if (data[specDataRowIndex] && data[specDataRowIndex][productDataColumnIndex] !== undefined) {
-                    // Asegurarse de no guardar 'null' si la celda está vacía para evitar sobreescribir con null innecesariamente,
-                    // aunque en este caso queremos representar la ausencia de valor.
-                    technicalSpecifications[specName] = data[specDataRowIndex][productDataColumnIndex];
-                } else {
-                    // Explicitamente establecer a null si la celda está vacía
-                    technicalSpecifications[specName] = null;
-                }
+                const cellValue = (data[specDataRowIndex] && data[specDataRowIndex][productDataColumnIndex] !== undefined) 
+                    ? data[specDataRowIndex][productDataColumnIndex] 
+                    : null;
+                technicalSpecificationsArray.push(cellValue);
             }
-
-            // Construir el objeto de actualización de forma explícita para el subdocumento
-            const updateObject = {};
-            // Iterar sobre las especificaciones recolectadas y añadirlas al path correcto
-            for (const specName in technicalSpecifications) {
-                if (technicalSpecifications.hasOwnProperty(specName)) {
-                    updateObject[`especificaciones_tecnicas.${specName}`] = technicalSpecifications[specName];
-                }
-            }
-
-            // Si no hay especificaciones, tal vez queramos limpiar el objeto o dejarlo como está
-            // Si updateObject está vacío, updateProductInDB podría no hacer nada.
-            // Aquí asumimos que siempre habrá especificaciones si el archivo está bien formado.
-            if (Object.keys(updateObject).length === 0 && specNames.length > 0) {
-                 console.warn(`[Bulk Upload Specs] No specification data collected for product ${productCode} despite finding specification names.`);
-                 // Podríamos decidir qué hacer aquí: saltar la actualización, limpiar el campo, etc.
-                 // Por ahora, si updateObject está vacío, no se actualizarán especificaciones_tecnicas.
-                 // Si hay especificaciones definidas en la plantilla pero todas las celdas están vacías,
-                 // updateObject contendrá { 'especificaciones_tecnicas.specName1': null, ... }
-            }
-
+            // Actualizar el ARRAY completo en la base de datos
+            const updateObject = {
+                especificaciones_tecnicas: technicalSpecificationsArray
+            };
             try {
-                // Pasar el objeto de actualización explícito al servicio de datos
                 const updatedProduct = await updateProductInDB(productCode, updateObject);
-
                 if (updatedProduct) {
                     results.push({ 
                         code: productCode, 
@@ -1403,16 +1359,13 @@ const uploadTechnicalSpecifications = async (req, res) => {
                 });
             }
         }
-
         // Refrescar el caché global después de procesar todos los productos
         try {
             await initializeProductCache();
             console.log('Cache refreshed after bulk specification update.');
         } catch (cacheError) {
             console.error('Error refreshing cache after bulk update:', cacheError);
-            // No consideramos esto un error fatal
         }
-
         // Enviar respuesta resumen
         const status = hasErrors ? 207 : 200;
         res.status(status).json({ 
@@ -1420,7 +1373,6 @@ const uploadTechnicalSpecifications = async (req, res) => {
             message: 'Procesamiento de archivo de especificaciones completado.', 
             results 
         });
-
     } catch (error) {
         console.error('Error processing specifications file:', error);
         res.status(500).json({ 
