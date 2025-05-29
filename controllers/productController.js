@@ -1283,6 +1283,7 @@ const uploadTechnicalSpecifications = async (req, res) => {
     console.log(`[Bulk Upload Specs] Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
 
     try {
+        // Verificar que el archivo sea un Excel válido
         if (!req.file.mimetype.includes('excel') && !req.file.mimetype.includes('spreadsheet')) {
             return res.status(400).json({ 
                 success: false, 
@@ -1341,13 +1342,8 @@ const uploadTechnicalSpecifications = async (req, res) => {
             // Extraer especificaciones técnicas para el producto actual
             const technicalSpecifications = {};
             for (let j = 0; j < specNames.length; j++) {
+                const specName = String(specNames[j]).trim();
                 const specDataRowIndex = j + 1;
-<<<<<<< HEAD
-                const cellValue = (data[specDataRowIndex] && data[specDataRowIndex][productDataColumnIndex] !== undefined) 
-                    ? data[specDataRowIndex][productDataColumnIndex] 
-                    : null;
-                technicalSpecificationsArray.push(cellValue);
-=======
 
                 if (data[specDataRowIndex] && data[specDataRowIndex][productDataColumnIndex] !== undefined) {
                     // Asegurarse de no guardar 'null' si la celda está vacía para evitar sobreescribir con null innecesariamente,
@@ -1357,7 +1353,6 @@ const uploadTechnicalSpecifications = async (req, res) => {
                     // Explicitamente establecer a null si la celda está vacía
                     technicalSpecifications[specName] = null;
                 }
->>>>>>> parent of 8580b83 (Update productController.js)
             }
 
             // Construir el objeto de actualización de forma explícita para el subdocumento
